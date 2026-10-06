@@ -1,0 +1,8 @@
+# Keep build output and local secrets out of the Docker build context
+target/
+*.env
+.mvn/
+mvnw
+mvnw.cmd
+.idea/
+.vscode/

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Minimal Maven wrapper for Unix: downloads Maven (once) into ~/.m2/wrapper/dists and runs it.
+set -e
+BASEDIR=$(cd "$(dirname "$0")" && pwd)
+DIST_URL=$(grep '^distributionUrl=' "$BASEDIR/.mvn/wrapper/maven-wrapper.properties" | cut -d= -f2- | tr -d '\r')
+DIST_ZIP=$(basename "$DIST_URL")
+DIST_NAME=${DIST_ZIP%-bin.zip}
+DIST_HOME="$HOME/.m2/wrapper/dists/$DIST_NAME"
+MVN="$DIST_HOME/$DIST_NAME/bin/mvn"
+if [ ! -x "$MVN" ]; then
+  echo "Downloading $DIST_URL"
+  mkdir -p "$DIST_HOME"
+  if command -v curl >/dev/null 2>&1; then curl -fsSL -o "$DIST_HOME/$DIST_ZIP" "$DIST_URL"
+  else wget -q -O "$DIST_HOME/$DIST_ZIP" "$DIST_URL"; fi
+  (cd "$DIST_HOME" && unzip -q -o "$DIST_ZIP" && rm -f "$DIST_ZIP")
+  chmod +x "$MVN"
+fi
+exec "$MVN" "$@"

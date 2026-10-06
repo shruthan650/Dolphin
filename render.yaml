@@ -1,0 +1,33 @@
+# Render Blueprint for the Dolphin backend (Spring Boot, Docker). The frontend is deployed on Vercel.
+# Render dashboard -> New -> Blueprint -> pick this repository. Values marked "sync: false" are asked for once.
+services:
+  - type: web
+    name: dolphin-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "8080"
+      # Signs login tokens. Generated once by Render; keep it stable or everyone is signed out.
+      - key: JWT_SECRET
+        generateValue: true
+      # Cloudflare D1 (same values as backend/d1.env)
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_D1_DATABASE_ID
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
+      # Admin login. The backend sets the admin's password to this value on every start.
+      - key: ADMIN_EMAIL
+        value: admin@dolphin.com
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Your Vercel URL(s), comma-separated; wildcards allowed, e.g.
+      # https://dolphin.vercel.app,https://dolphin-*.vercel.app
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
