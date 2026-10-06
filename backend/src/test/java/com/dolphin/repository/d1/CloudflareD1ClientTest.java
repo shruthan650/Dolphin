@@ -92,6 +92,16 @@ class CloudflareD1ClientTest {
     }
 
     @Test
+    void settingsPastedWithQuotesOrAsWholeLineAreCleanedUp() {
+        assertThat(CloudflareD1Client.clean("  cfat_abc \n", "CLOUDFLARE_API_TOKEN")).isEqualTo("cfat_abc");
+        assertThat(CloudflareD1Client.clean("\"cfat_abc\"", "CLOUDFLARE_API_TOKEN")).isEqualTo("cfat_abc");
+        assertThat(CloudflareD1Client.clean("CLOUDFLARE_API_TOKEN=cfat_abc", "CLOUDFLARE_API_TOKEN"))
+                .isEqualTo("cfat_abc");
+        assertThat(CloudflareD1Client.fingerprint("cfat_abcdef")).startsWith("cfat_… (11 chars, sha256 ")
+                .doesNotContain("abcdef");
+    }
+
+    @Test
     void missingCredentialsFailFast() {
         assertThatThrownBy(() -> new CloudflareD1Client(RestClient.builder(), "acc", "", "token", new ObjectMapper()))
                 .isInstanceOf(IllegalStateException.class)

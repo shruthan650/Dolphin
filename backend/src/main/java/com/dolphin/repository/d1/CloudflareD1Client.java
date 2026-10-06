@@ -3,6 +3,8 @@ package com.dolphin.repository.d1;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -10,9 +12,13 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +28,7 @@ import java.util.Map;
  */
 public class CloudflareD1Client implements D1Client {
 
+    private static final Logger log = LoggerFactory.getLogger(CloudflareD1Client.class);
     private static final String API_BASE = "https://api.cloudflare.com/client/v4";
     private static final TypeReference<List<Map<String, Object>>> ROWS = new TypeReference<>() { };
 
@@ -37,14 +44,46 @@ public class CloudflareD1Client implements D1Client {
     /** Visible for tests, which bind a mock server to the builder. */
     CloudflareD1Client(RestClient.Builder builder, String accountId, String databaseId, String apiToken,
                        ObjectMapper objectMapper) {
-        requireSetting(accountId, "CLOUDFLARE_ACCOUNT_ID");
-        requireSetting(databaseId, "CLOUDFLARE_D1_DATABASE_ID");
-        requireSetting(apiToken, "CLOUDFLARE_API_TOKEN");
+        String account = clean(accountId, "CLOUDFLARE_ACCOUNT_ID");
+        String database = clean(databaseId, "CLOUDFLARE_D1_DATABASE_ID");
+        String token = clean(apiToken, "CLOUDFLARE_API_TOKEN");
+        log.info("Cloudflare D1: account {}, database {}, API token {}", account, database, fingerprint(token));
         this.restClient = builder
-                .baseUrl(API_BASE + "/accounts/" + accountId.trim() + "/d1/database/" + databaseId.trim() + "/query")
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiToken.trim())
+                .baseUrl(API_BASE + "/accounts/" + account + "/d1/database/" + database + "/query")
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .build();
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Trims a setting and undoes common copy/paste mistakes in hosting dashboards: surrounding quotes and a pasted
+     * "NAME=value" line.
+     */
+    static String clean(String value, String envVar) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(envVar + " must be set (in backend/d1.env or as an environment variable)"
+                    + " to use Cloudflare D1 storage");
+        }
+        String cleaned = value.trim();
+        if (cleaned.startsWith(envVar + "=")) {
+            cleaned = cleaned.substring(envVar.length() + 1).trim();
+        }
+        if (cleaned.length() >= 2 && (cleaned.startsWith("\"") && cleaned.endsWith("\"")
+                || cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            cleaned = cleaned.substring(1, cleaned.length() - 1).trim();
+        }
+        return cleaned;
+    }
+
+    /** Identifies a token in logs without revealing it: prefix, length and a short SHA-256. */
+    static String fingerprint(String token) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
+            String prefix = token.substring(0, Math.min(5, token.length()));
+            return prefix + "… (" + token.length() + " chars, sha256 " + HexFormat.of().formatHex(hash, 0, 4) + ")";
+        } catch (NoSuchAlgorithmException ex) {
+            return token.length() + " chars";
+        }
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(Duration timeout) {
@@ -78,13 +117,20 @@ public class CloudflareD1Client implements D1Client {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (RestClientResponseException ex) {
-            throw new D1Exception("D1 request failed (HTTP " + ex.getStatusCode().value() + "): "
-                    + errorMessages(readQuietly(ex.getResponseBodyAsString())));
+            String raw = ex.getResponseBodyAsString();
+            String reason = errorMessages(readQuietly(raw));
+            if (reason == null) {
+                reason = raw.isBlank() ? ex.getStatusText() : raw.substring(0, Math.min(300, raw.length()));
+            }
+            String hint = ex.getStatusCode().value() == 401 || ex.getStatusCode().value() == 403
+                    ? " - check CLOUDFLARE_API_TOKEN (needs D1 Edit) and CLOUDFLARE_ACCOUNT_ID" : "";
+            throw new D1Exception("D1 request failed (HTTP " + ex.getStatusCode().value() + "): " + reason + hint);
         } catch (RestClientException ex) {
             throw new D1Exception("Unable to reach Cloudflare D1: " + ex.getMessage(), ex);
         }
         if (response == null || !response.path("success").asBoolean(false)) {
-            throw new D1Exception("D1 query failed: " + errorMessages(response));
+            String reason = errorMessages(response);
+            throw new D1Exception("D1 query failed: " + (reason == null ? "unknown error" : reason));
         }
         return response.path("result");
     }
@@ -106,18 +152,13 @@ public class CloudflareD1Client implements D1Client {
         }
     }
 
+    /** @return Cloudflare's error messages, or null when the response carries none */
     private static String errorMessages(JsonNode response) {
         if (response == null || !response.path("errors").isArray() || response.path("errors").isEmpty()) {
-            return "unknown error";
+            return null;
         }
         List<String> messages = new ArrayList<>();
         response.path("errors").forEach(e -> messages.add(e.path("message").asText(e.toString())));
         return String.join("; ", messages);
-    }
-
-    private static void requireSetting(String value, String envVar) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException(envVar + " must be set (in backend/d1.env or as an environment variable) to use Cloudflare D1 storage");
-        }
     }
 }
