@@ -23,6 +23,7 @@ public final class LeetCodeMapper {
     public static LeetCodeEntry toEntity(CreateLeetCodeRequest request, String studentId, Instant now) {
         LeetCodeEntry entry = new LeetCodeEntry();
         entry.setStudentId(studentId);
+        entry.setClassId(request.classId().trim());
         entry.setProblemName(request.problemName().trim());
         entry.setProblemUrl(trimToNull(request.problemUrl()));
         entry.setDifficulty(request.difficulty());
@@ -61,7 +62,12 @@ public final class LeetCodeMapper {
     }
 
     public static LeetCodeResponse toResponse(LeetCodeEntry entry, String studentName) {
-        return new LeetCodeResponse(entry.getId(), entry.getStudentId(), studentName, entry.getProblemName(),
+        return toResponse(entry, studentName, null);
+    }
+
+    public static LeetCodeResponse toResponse(LeetCodeEntry entry, String studentName, String className) {
+        return new LeetCodeResponse(entry.getId(), entry.getStudentId(), studentName, entry.getClassId(), className,
+                entry.getProblemName(),
                 entry.getProblemUrl(), entry.getDifficulty(), entry.getStatus(), entry.getTopic(),
                 entry.getSolvedAt(), entry.getCreatedAt(), entry.getUpdatedAt());
     }

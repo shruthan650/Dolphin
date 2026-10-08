@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProjectCard from '../../components/cards/ProjectCard';
 import Button from '../../components/common/Button';
@@ -11,13 +11,28 @@ import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { getErrorMessage } from '../../services/api';
 import { projectService } from '../../services/projectService';
+import { studentService } from '../../services/studentService';
 
 export default function Projects() {
   const { data, setData, loading, error, reload } = useApi(projectService.mine);
+  const classes = useApi(studentService.classes);
+  const [classFilter, setClassFilter] = useState('ALL');
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
+
+  const classNames = useMemo(
+    () => Object.fromEntries((classes.data || []).map((c) => [c.id, c.className])),
+    [classes.data],
+  );
+  const filtered = useMemo(
+    () =>
+      (data || []).filter(
+        (p) => classFilter === 'ALL' || (classFilter === 'NONE' ? !p.classId : p.classId === classFilter),
+      ),
+    [data, classFilter],
+  );
 
   const confirmDelete = async () => {
     setBusy(true);
@@ -61,17 +76,42 @@ export default function Projects() {
           }
         />
       ) : (
-        <div className="card-grid">
-          {data.map((p) => (
-            <ProjectCard
-              key={p.id}
-              project={p}
-              viewTo={`/student/projects/${p.id}`}
-              onEdit={() => navigate(`/student/projects/${p.id}/edit`)}
-              onDelete={() => setDeleting(p)}
-            />
-          ))}
-        </div>
+        <>
+          {(classes.data?.length > 1 || data.some((p) => !p.classId)) && (
+            <div className="toolbar">
+              <select
+                className="field-control field-control-sm"
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                aria-label="Filter by class"
+              >
+                <option value="ALL">All classes</option>
+                {(classes.data || []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.className}
+                  </option>
+                ))}
+                <option value="NONE">Unassigned</option>
+              </select>
+            </div>
+          )}
+          {filtered.length === 0 ? (
+            <EmptyState icon="search" title="No projects in this class" />
+          ) : (
+            <div className="card-grid">
+              {filtered.map((p) => (
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  classLabel={classNames[p.classId] ?? null}
+                  viewTo={`/student/projects/${p.id}`}
+                  onEdit={() => navigate(`/student/projects/${p.id}/edit`)}
+                  onDelete={() => setDeleting(p)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <ConfirmDialog

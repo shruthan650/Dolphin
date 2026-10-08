@@ -16,8 +16,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Teacher advice on a student's projects and LeetCode entries. A teacher may advise only students enrolled in one
@@ -44,21 +46,22 @@ public class AdviceService {
 
     public AdviceResponse give(String teacherId, CreateAdviceRequest request) {
         String studentId;
+        String classId;
         String title;
         if (request.targetType() == AdviceTarget.PROJECT) {
             Project project = projectRepository.findById(request.targetId())
                     .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
             studentId = project.getOwnerId();
+            classId = project.getClassId();
             title = project.getTitle();
         } else {
             LeetCodeEntry entry = leetCodeRepository.findById(request.targetId())
                     .orElseThrow(() -> new ResourceNotFoundException("LeetCode entry not found"));
             studentId = entry.getStudentId();
+            classId = entry.getClassId();
             title = entry.getProblemName();
         }
-        boolean teachesStudent = classRepository.findByTeacherId(teacherId).stream()
-                .anyMatch(c -> c.getStudentIds().contains(studentId));
-        if (!teachesStudent) {
+        if (!TeacherScope.of(classRepository.findByTeacherId(teacherId)).canSee(studentId, classId)) {
             throw new ForbiddenException("You can only advise students enrolled in your classes");
         }
 
@@ -86,13 +89,25 @@ public class AdviceService {
 
     /** All advice given to a student, newest first, with project/problem titles and teacher names. */
     public List<AdviceResponse> forStudent(String studentId) {
-        List<Advice> items = adviceRepository.findByStudentId(studentId);
+        return forStudent(studentId, null);
+    }
+
+    /** Advice on the student's projects and entries that are visible through the given classes of a teacher. */
+    List<AdviceResponse> forStudent(String studentId, TeacherScope scope) {
+        Map<String, String> titles = new HashMap<>();
+        projectRepository.findByOwnerId(studentId).stream()
+                .filter(p -> scope == null || scope.canSee(studentId, p.getClassId()))
+                .forEach(p -> titles.put(p.getId(), p.getTitle()));
+        leetCodeRepository.findByStudentId(studentId).stream()
+                .filter(e -> scope == null || scope.canSee(studentId, e.getClassId()))
+                .forEach(e -> titles.put(e.getId(), e.getProblemName()));
+        Set<String> visibleTargets = new HashSet<>(titles.keySet());
+        List<Advice> items = adviceRepository.findByStudentId(studentId).stream()
+                .filter(a -> scope == null || visibleTargets.contains(a.getTargetId()))
+                .toList();
         if (items.isEmpty()) {
             return List.of();
         }
-        Map<String, String> titles = new HashMap<>();
-        projectRepository.findByOwnerId(studentId).forEach(p -> titles.put(p.getId(), p.getTitle()));
-        leetCodeRepository.findByStudentId(studentId).forEach(e -> titles.put(e.getId(), e.getProblemName()));
         Map<String, String> teacherNames = progressAssembler.namesById(
                 items.stream().map(Advice::getTeacherId).distinct().toList());
         return items.stream()

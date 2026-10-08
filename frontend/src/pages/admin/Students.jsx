@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
+import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
 import SearchInput from '../../components/common/SearchInput';
+import DeleteUserDialog from '../../components/forms/DeleteUserDialog';
 import UsersTable from '../../components/tables/UsersTable';
 import { useApi } from '../../hooks/useApi';
 import { adminService } from '../../services/adminService';
 
 export default function Students() {
-  const { data, loading, error, reload } = useApi(adminService.students);
+  const [deleting, setDeleting] = useState(null);
+  const { data, setData, loading, error, reload } = useApi(adminService.students);
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -35,9 +38,36 @@ export default function Students() {
         ) : filtered.length === 0 ? (
           <EmptyState icon="search" title="No matching students" />
         ) : (
-          <UsersTable users={filtered} classLabel="Classes joined" />
+          <UsersTable
+            users={filtered}
+            classLabel="Classes joined"
+            actions={(u) =>
+              u.role !== 'ADMIN' && (
+                <div className="row-actions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon="trash"
+                    className="btn-danger-ghost"
+                    aria-label={`Delete ${u.name}`}
+                    title={`Delete ${u.name}`}
+                    onClick={() => setDeleting(u)}
+                  />
+                </div>
+              )
+            }
+          />
         )}
       </Card>
+
+      <DeleteUserDialog
+        user={deleting}
+        onCancel={() => setDeleting(null)}
+        onDeleted={(u) => {
+          setDeleting(null);
+          setData((current) => current.filter((s) => s.id !== u.id));
+        }}
+      />
     </>
   );
 }

@@ -30,8 +30,8 @@ public class AccountDeletionService {
     }
 
     /**
-     * Deletes the teacher, their classes and the advice they wrote. Students of those classes keep their
-     * accounts and data.
+     * Deletes the teacher, their classes and the advice they wrote. Students of those classes are unenrolled but keep
+     * their accounts and data (their projects and LeetCode entries of those classes become unassigned).
      */
     void deleteTeacher(String teacherId) {
         adviceRepository.deleteByTeacherId(teacherId);

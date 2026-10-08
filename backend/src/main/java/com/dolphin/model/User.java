@@ -12,6 +12,12 @@ public class User {
     private String githubUrl;
     private String leetCodeUrl;
     private boolean active;
+    /** Consecutive wrong passwords since the last successful login. */
+    private int failedLoginAttempts;
+    /** Logins are rejected until this instant; null when the account is not locked. */
+    private Instant lockedUntil;
+    /** Incremented when the password or email changes; tokens carrying an older version are rejected. */
+    private int tokenVersion;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -25,6 +31,9 @@ public class User {
         copy.githubUrl = githubUrl;
         copy.leetCodeUrl = leetCodeUrl;
         copy.active = active;
+        copy.failedLoginAttempts = failedLoginAttempts;
+        copy.lockedUntil = lockedUntil;
+        copy.tokenVersion = tokenVersion;
         copy.createdAt = createdAt;
         copy.updatedAt = updatedAt;
         return copy;
@@ -53,6 +62,18 @@ public class User {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public int getFailedLoginAttempts() { return failedLoginAttempts; }
+    public void setFailedLoginAttempts(int failedLoginAttempts) { this.failedLoginAttempts = failedLoginAttempts; }
+
+    public Instant getLockedUntil() { return lockedUntil; }
+    public void setLockedUntil(Instant lockedUntil) { this.lockedUntil = lockedUntil; }
+
+    /** True while a lockout is in force at {@code now}. */
+    public boolean isLockedAt(Instant now) { return lockedUntil != null && lockedUntil.isAfter(now); }
+
+    public int getTokenVersion() { return tokenVersion; }
+    public void setTokenVersion(int tokenVersion) { this.tokenVersion = tokenVersion; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

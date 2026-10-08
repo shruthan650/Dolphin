@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
+import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
 import SearchInput from '../../components/common/SearchInput';
+import DeleteUserDialog from '../../components/forms/DeleteUserDialog';
 import UsersTable from '../../components/tables/UsersTable';
 import { useApi } from '../../hooks/useApi';
 import { adminService } from '../../services/adminService';
@@ -12,7 +14,8 @@ import { adminService } from '../../services/adminService';
 const ROLES = ['ALL', 'ADMIN', 'TEACHER', 'STUDENT'];
 
 export default function Users() {
-  const { data, loading, error, reload } = useApi(adminService.users);
+  const [deleting, setDeleting] = useState(null);
+  const { data, setData, loading, error, reload } = useApi(adminService.users);
   const [query, setQuery] = useState('');
   const [role, setRole] = useState('ALL');
 
@@ -51,9 +54,36 @@ export default function Users() {
         ) : filtered.length === 0 ? (
           <EmptyState icon="search" title="No matching users" />
         ) : (
-          <UsersTable users={filtered} showRole />
+          <UsersTable
+            users={filtered}
+            showRole
+            actions={(u) =>
+              u.role !== 'ADMIN' && (
+                <div className="row-actions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon="trash"
+                    className="btn-danger-ghost"
+                    aria-label={`Delete ${u.name}`}
+                    title={`Delete ${u.name}`}
+                    onClick={() => setDeleting(u)}
+                  />
+                </div>
+              )
+            }
+          />
         )}
       </Card>
+
+      <DeleteUserDialog
+        user={deleting}
+        onCancel={() => setDeleting(null)}
+        onDeleted={(u) => {
+          setDeleting(null);
+          setData((current) => current.filter((x) => x.id !== u.id));
+        }}
+      />
     </>
   );
 }

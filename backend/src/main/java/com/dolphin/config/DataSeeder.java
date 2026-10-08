@@ -12,12 +12,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Optional;
 
 /**
- * Ensures the admin account exists on startup and that its password matches ADMIN_PASSWORD (creating the
- * account on the first run against an empty database).
- * Teachers, classes, students and their data are intentionally NOT seeded.
+ * Creates the admin account from ADMIN_EMAIL / ADMIN_PASSWORD on startup when no admin exists yet (the first run
+ * against an empty database). Once it exists the admin manages their own email and password from the profile page,
+ * so they are never overwritten on restart. Teachers, classes, students and their data are intentionally NOT seeded.
  */
 @Component
 public class DataSeeder implements ApplicationRunner {
@@ -41,9 +40,11 @@ public class DataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        Optional<User> existing = userRepository.findByEmail(adminEmail);
-        if (existing.isPresent()) {
-            syncPassword(existing.get());
+        if (userRepository.countByRole(Role.ADMIN) > 0) {
+            return;
+        }
+        if (userRepository.existsByEmail(adminEmail)) {
+            log.warn("No admin account exists, but ADMIN_EMAIL {} belongs to another account; not seeding", adminEmail);
             return;
         }
         Instant now = Instant.now();
@@ -57,16 +58,5 @@ public class DataSeeder implements ApplicationRunner {
         admin.setUpdatedAt(now);
         userRepository.save(admin);
         log.info("Seeded development admin account: {}", admin.getEmail());
-    }
-
-    /** ADMIN_PASSWORD is the source of truth: changing it and restarting changes the admin's password. */
-    private void syncPassword(User admin) {
-        if (passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
-            return;
-        }
-        admin.setPasswordHash(passwordEncoder.encode(adminPassword));
-        admin.setUpdatedAt(Instant.now());
-        userRepository.save(admin);
-        log.info("Updated the admin password for {} from ADMIN_PASSWORD", admin.getEmail());
     }
 }

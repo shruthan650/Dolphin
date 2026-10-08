@@ -12,7 +12,7 @@ import com.dolphin.mapper.LeetCodeMapper;
 import com.dolphin.mapper.ProjectMapper;
 import com.dolphin.model.ClassEntity;
 import com.dolphin.model.LeetCodeEntry;
-import com.dolphin.model.Role;
+import com.dolphin.model.Project;
 import com.dolphin.model.User;
 import com.dolphin.repository.ClassRepository;
 import com.dolphin.repository.LeetCodeRepository;
@@ -26,7 +26,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Teacher read access to students. A teacher only ever sees students enrolled in classes they own.
+ * Teacher read access to students. A teacher only ever sees students enrolled in classes they own, and only their
+ * projects and LeetCode entries of those classes (plus unassigned ones; see {@link TeacherScope}).
  */
 @Service
 public class TeacherService {
@@ -36,19 +37,16 @@ public class TeacherService {
     private final ProjectRepository projectRepository;
     private final LeetCodeRepository leetCodeRepository;
     private final StudentProgressAssembler progressAssembler;
-    private final AccountDeletionService accountDeletionService;
     private final AdviceService adviceService;
 
     public TeacherService(ClassRepository classRepository, UserRepository userRepository,
                           ProjectRepository projectRepository, LeetCodeRepository leetCodeRepository,
-                          StudentProgressAssembler progressAssembler, AccountDeletionService accountDeletionService,
-                          AdviceService adviceService) {
+                          StudentProgressAssembler progressAssembler, AdviceService adviceService) {
         this.classRepository = classRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.leetCodeRepository = leetCodeRepository;
         this.progressAssembler = progressAssembler;
-        this.accountDeletionService = accountDeletionService;
         this.adviceService = adviceService;
     }
 
@@ -65,55 +63,60 @@ public class TeacherService {
         List<ClassResponse> classes = sharedClasses.stream()
                 .map(c -> ClassMapper.toResponse(c, teacherName))
                 .toList();
-        List<LeetCodeEntry> entries = leetCodeRepository.findByStudentId(studentId);
-        List<ProjectResponse> projects = projectRepository.findByOwnerId(studentId).stream()
-                .map(ProjectMapper::toResponse)
+        TeacherScope scope = TeacherScope.of(sharedClasses);
+        List<LeetCodeEntry> entries = visibleEntries(scope, leetCodeRepository.findByStudentId(studentId));
+        List<ProjectResponse> projects = visibleProjects(scope, projectRepository.findByOwnerId(studentId)).stream()
+                .map(p -> ProjectMapper.toResponse(p, null, scope.className(p.getClassId())))
                 .toList();
         return new TeacherStudentDetailResponse(student.getId(), student.getName(), student.getEmail(),
-                student.getGithubUrl(), student.getLeetCodeUrl(), student.isActive(), student.getCreatedAt(), classes, LeetCodeMapper.toStats(entries), projects,
-                entries.stream().map(LeetCodeMapper::toResponse).toList(), adviceService.forStudent(studentId));
+                student.getGithubUrl(), student.getLeetCodeUrl(), student.isActive(), student.getCreatedAt(), classes,
+                LeetCodeMapper.toStats(entries), projects,
+                entries.stream().map(e -> LeetCodeMapper.toResponse(e, null, scope.className(e.getClassId()))).toList(),
+                adviceService.forStudent(studentId, scope));
     }
 
     public List<ProjectResponse> getStudentProjects(String teacherId, String studentId) {
-        requireStudentAccess(teacherId, studentId);
-        return projectRepository.findByOwnerId(studentId).stream().map(ProjectMapper::toResponse).toList();
+        TeacherScope scope = TeacherScope.of(requireStudentAccess(teacherId, studentId));
+        return visibleProjects(scope, projectRepository.findByOwnerId(studentId)).stream()
+                .map(p -> ProjectMapper.toResponse(p, null, scope.className(p.getClassId())))
+                .toList();
     }
 
     public List<LeetCodeResponse> getStudentLeetCode(String teacherId, String studentId) {
-        requireStudentAccess(teacherId, studentId);
-        return leetCodeRepository.findByStudentId(studentId).stream().map(LeetCodeMapper::toResponse).toList();
+        TeacherScope scope = TeacherScope.of(requireStudentAccess(teacherId, studentId));
+        return visibleEntries(scope, leetCodeRepository.findByStudentId(studentId)).stream()
+                .map(e -> LeetCodeMapper.toResponse(e, null, scope.className(e.getClassId())))
+                .toList();
     }
 
-    /**
-     * Permanently deletes a student enrolled in one of this teacher's classes, including their projects,
-     * LeetCode entries and enrolments in every class (also other teachers' classes).
-     */
-    public void deleteStudent(String teacherId, String studentId) {
-        requireStudentAccess(teacherId, studentId);
-        User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        if (student.getRole() != Role.STUDENT) {
-            throw new ForbiddenException("Only student accounts can be deleted");
-        }
-        accountDeletionService.deleteStudent(studentId);
-    }
-
-    /** All projects from students across the teacher's classes. */
+    /** Projects from students across the teacher's classes (only those of the teacher's classes, or unassigned). */
     public List<ProjectResponse> getAllStudentProjects(String teacherId) {
-        Set<String> studentIds = studentIdsOf(classRepository.findByTeacherId(teacherId));
+        List<ClassEntity> classes = classRepository.findByTeacherId(teacherId);
+        TeacherScope scope = TeacherScope.of(classes);
+        Set<String> studentIds = studentIdsOf(classes);
         Map<String, String> names = progressAssembler.namesById(studentIds);
-        return projectRepository.findByOwnerIdIn(studentIds).stream()
-                .map(p -> ProjectMapper.toResponse(p, names.get(p.getOwnerId())))
+        return visibleProjects(scope, projectRepository.findByOwnerIdIn(studentIds)).stream()
+                .map(p -> ProjectMapper.toResponse(p, names.get(p.getOwnerId()), scope.className(p.getClassId())))
                 .toList();
     }
 
-    /** All LeetCode entries from students across the teacher's classes. */
+    /** LeetCode entries from students across the teacher's classes (same visibility rule as projects). */
     public List<LeetCodeResponse> getAllStudentLeetCode(String teacherId) {
-        Set<String> studentIds = studentIdsOf(classRepository.findByTeacherId(teacherId));
+        List<ClassEntity> classes = classRepository.findByTeacherId(teacherId);
+        TeacherScope scope = TeacherScope.of(classes);
+        Set<String> studentIds = studentIdsOf(classes);
         Map<String, String> names = progressAssembler.namesById(studentIds);
-        return leetCodeRepository.findByStudentIdIn(studentIds).stream()
-                .map(e -> LeetCodeMapper.toResponse(e, names.get(e.getStudentId())))
+        return visibleEntries(scope, leetCodeRepository.findByStudentIdIn(studentIds)).stream()
+                .map(e -> LeetCodeMapper.toResponse(e, names.get(e.getStudentId()), scope.className(e.getClassId())))
                 .toList();
+    }
+
+    private static List<Project> visibleProjects(TeacherScope scope, List<Project> projects) {
+        return projects.stream().filter(p -> scope.canSee(p.getOwnerId(), p.getClassId())).toList();
+    }
+
+    private static List<LeetCodeEntry> visibleEntries(TeacherScope scope, List<LeetCodeEntry> entries) {
+        return entries.stream().filter(e -> scope.canSee(e.getStudentId(), e.getClassId())).toList();
     }
 
     static Set<String> studentIdsOf(List<ClassEntity> classes) {

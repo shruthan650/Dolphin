@@ -67,6 +67,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             request.setAttribute(AUTH_ERROR_ATTRIBUTE, "Account is inactive or no longer exists");
             return;
         }
+        // A password or email change bumps the version, which signs out every session using an older token.
+        if (user.get().getTokenVersion() != claims.tokenVersion()) {
+            request.setAttribute(AUTH_ERROR_ATTRIBUTE, "Your session has ended. Please sign in again.");
+            return;
+        }
 
         User u = user.get();
         AuthenticatedUser principal = new AuthenticatedUser(u.getId(), u.getEmail(), u.getName(), u.getRole());

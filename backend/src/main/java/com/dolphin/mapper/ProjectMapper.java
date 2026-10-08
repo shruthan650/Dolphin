@@ -18,6 +18,7 @@ public final class ProjectMapper {
     public static Project toEntity(CreateProjectRequest request, String ownerId, Instant now) {
         Project project = new Project();
         project.setOwnerId(ownerId);
+        project.setClassId(request.classId().trim());
         project.setTitle(request.title().trim());
         project.setDescription(trimToNull(request.description()));
         project.setGithubUrl(trimToNull(request.githubUrl()));
@@ -42,7 +43,12 @@ public final class ProjectMapper {
     }
 
     public static ProjectResponse toResponse(Project project, String ownerName) {
-        return new ProjectResponse(project.getId(), project.getOwnerId(), ownerName, project.getTitle(),
+        return toResponse(project, ownerName, null);
+    }
+
+    public static ProjectResponse toResponse(Project project, String ownerName, String className) {
+        return new ProjectResponse(project.getId(), project.getOwnerId(), ownerName, project.getClassId(), className,
+                project.getTitle(),
                 project.getDescription(), project.getGithubUrl(), project.getLiveUrl(),
                 project.getTechnologies(), project.getCreatedAt(), project.getUpdatedAt());
     }

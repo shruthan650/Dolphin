@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
+import Button from '../common/Button';
 import CopyButton from '../common/CopyButton';
 import Icon from '../common/Icon';
 
-/** `to` makes the whole card a link (teacher view); students see the teacher name instead. */
-export default function ClassCard({ cls, to, highlight = false }) {
+/**
+ * `to` makes the whole card a link (teacher view); students see the teacher name instead, and onLeave adds a
+ * destructive Leave class action.
+ */
+export default function ClassCard({ cls, to, highlight = false, onLeave }) {
   const body = (
     <>
       <div className="class-card-top">
@@ -35,6 +39,13 @@ export default function ClassCard({ cls, to, highlight = false }) {
           </div>
         )}
       </dl>
+      {onLeave && (
+        <div className="class-card-actions">
+          <Button variant="ghost" size="sm" icon="logout" className="btn-danger-ghost" onClick={() => onLeave(cls)}>
+            Leave class
+          </Button>
+        </div>
+      )}
       {to && (
         <span className="class-card-link">
           View class <Icon name="arrowRight" size={16} />

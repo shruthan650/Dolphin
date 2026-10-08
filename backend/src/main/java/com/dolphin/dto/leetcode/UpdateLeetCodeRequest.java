@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
+/** classId is optional: when present the entry moves to that class (one the student is enrolled in). */
 public record UpdateLeetCodeRequest(
         @NotBlank(message = "Problem name is required")
         @Size(max = 150, message = "Problem name must be at most 150 characters")
@@ -29,6 +30,8 @@ public record UpdateLeetCodeRequest(
         String topic,
 
         @PastOrPresent(message = "Solved date cannot be in the future")
-        LocalDate solvedAt
+        LocalDate solvedAt,
+
+        String classId
 ) {
 }

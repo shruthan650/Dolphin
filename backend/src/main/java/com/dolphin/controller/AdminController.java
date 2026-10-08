@@ -62,6 +62,12 @@ public class AdminController {
         adminService.deleteTeacher(id);
     }
 
+    @DeleteMapping("/students/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteStudent(@PathVariable String id) {
+        adminService.deleteStudent(id);
+    }
+
     @GetMapping("/students")
     public List<AdminUserResponse> students() {
         return adminService.listStudents();

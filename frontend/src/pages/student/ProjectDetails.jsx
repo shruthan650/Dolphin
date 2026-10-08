@@ -12,12 +12,14 @@ import { useToast } from '../../hooks/useToast';
 import { adviceService } from '../../services/adviceService';
 import { getErrorMessage } from '../../services/api';
 import { projectService } from '../../services/projectService';
+import { studentService } from '../../services/studentService';
 import { formatDate } from '../../utils/format';
 
 export default function ProjectDetails() {
   const { id } = useParams();
   const { data, loading, error, reload } = useApi(() => projectService.get(id), [id]);
   const advice = useApi(adviceService.mine);
+  const classes = useApi(studentService.classes);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -74,6 +76,12 @@ export default function ProjectDetails() {
         </Card>
         <Card title="Details">
           <dl className="detail-list">
+            <div>
+              <dt>Class</dt>
+              <dd>
+                {classes.data?.find((c) => c.id === data.classId)?.className ?? <span className="muted">Unassigned</span>}
+              </dd>
+            </div>
             <div>
               <dt>Technologies</dt>
               <dd>

@@ -3,8 +3,12 @@ import Button from '../common/Button';
 import Icon from '../common/Icon';
 import { formatDate } from '../../utils/format';
 
-/** Project summary. Pass onEdit/onDelete for owner actions, viewTo for a details link. */
-export default function ProjectCard({ project, viewTo, onEdit, onDelete, showOwner = false }) {
+/**
+ * Project summary. Pass onEdit/onDelete for owner actions, viewTo for a details link. classLabel names the class the
+ * project belongs to (falls back to the className teachers receive).
+ */
+export default function ProjectCard({ project, viewTo, onEdit, onDelete, showOwner = false, classLabel }) {
+  const cls = classLabel ?? project.className;
   return (
     <article className="project-card">
       <div className="project-card-head">
@@ -14,6 +18,7 @@ export default function ProjectCard({ project, viewTo, onEdit, onDelete, showOwn
         <span className="project-owner">
           {showOwner && project.ownerName ? `${project.ownerName} · ` : ''}Created {formatDate(project.createdAt)}
         </span>
+        {cls !== undefined && <span className="chip chip-sm">{cls || 'Unassigned'}</span>}
       </div>
       {project.description ? (
         <p className="project-description">{project.description}</p>

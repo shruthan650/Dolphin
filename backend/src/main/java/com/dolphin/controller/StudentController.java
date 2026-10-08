@@ -9,12 +9,16 @@ import com.dolphin.service.AuthService;
 import com.dolphin.service.ClassService;
 import com.dolphin.service.DashboardService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -42,6 +46,13 @@ public class StudentController {
     @GetMapping("/classes")
     public List<StudentClassResponse> classes(@AuthenticationPrincipal AuthenticatedUser user) {
         return classService.listStudentClasses(user.id());
+    }
+
+    /** Leaves a class; the student's projects and LeetCode entries of that class are permanently deleted. */
+    @DeleteMapping("/classes/{classId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveClass(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable String classId) {
+        classService.leaveClass(user.id(), classId);
     }
 
     @PutMapping("/profile-links")

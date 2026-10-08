@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Icon from '../../components/common/Icon';
 import Input from '../../components/common/Input';
+import ThemeToggle from '../../components/common/ThemeToggle';
 import FormAlert from '../../components/forms/FormAlert';
 import ProfileLinksForm, { ProfileLinkFields } from '../../components/forms/ProfileLinksForm';
 import { useForm } from '../../components/forms/useForm';
@@ -158,6 +159,7 @@ export default function Login() {
       </section>
 
       <section className="auth-panel">
+        <ThemeToggle className="auth-theme-toggle" />
         <div className="auth-card">
           <div className="auth-logo auth-logo-mobile">
             <img src="/favicon.svg" alt="" width="32" height="32" />

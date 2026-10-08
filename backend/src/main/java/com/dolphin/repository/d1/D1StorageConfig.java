@@ -13,6 +13,7 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -44,8 +45,59 @@ public class D1StorageConfig {
                     .map(sql -> new D1Client.D1Statement(sql, List.of()))
                     .toList();
             d1Client.batch(statements);
+            migrate(d1Client);
             log.info("Cloudflare D1 schema is up to date ({} statements)", statements.size());
         };
+    }
+
+    /** A column added after the first release: added to existing tables when missing, then {@code afterAdd} runs. */
+    record ColumnMigration(String table, String column, String definition, List<String> afterAdd) {
+    }
+
+    /**
+     * Columns added after the first release. Brand-new databases already get them from schema.sql; older ones get them
+     * here, exactly once (SQLite's ADD COLUMN is not idempotent, so the column list is checked first).
+     */
+    static final List<ColumnMigration> MIGRATIONS = List.of(
+            new ColumnMigration("users", "failed_login_attempts", "INTEGER NOT NULL DEFAULT 0", List.of()),
+            new ColumnMigration("users", "locked_until", "TEXT", List.of()),
+            new ColumnMigration("users", "token_version", "INTEGER NOT NULL DEFAULT 0", List.of()),
+            // Existing projects/entries are assigned to the student's class when they are in exactly one class;
+            // otherwise ownership cannot be determined and they stay unassigned (never deleted with a class).
+            new ColumnMigration("projects", "class_id", "TEXT", List.of("""
+                    UPDATE projects SET class_id = (
+                        SELECT s.class_id FROM class_students s WHERE s.student_id = projects.owner_id)
+                    WHERE class_id IS NULL
+                      AND (SELECT COUNT(*) FROM class_students s WHERE s.student_id = projects.owner_id) = 1
+                    """)),
+            new ColumnMigration("leetcode_entries", "class_id", "TEXT", List.of("""
+                    UPDATE leetcode_entries SET class_id = (
+                        SELECT s.class_id FROM class_students s WHERE s.student_id = leetcode_entries.student_id)
+                    WHERE class_id IS NULL
+                      AND (SELECT COUNT(*) FROM class_students s
+                           WHERE s.student_id = leetcode_entries.student_id) = 1
+                    """)));
+
+    /** Indexes on migrated columns; they can only be created once the columns exist. */
+    static final List<String> MIGRATED_INDEXES = List.of(
+            "CREATE INDEX IF NOT EXISTS idx_projects_class ON projects (class_id)",
+            "CREATE INDEX IF NOT EXISTS idx_leetcode_class ON leetcode_entries (class_id)");
+
+    static void migrate(D1Client d1Client) {
+        for (ColumnMigration m : MIGRATIONS) {
+            boolean present = d1Client.query("PRAGMA table_info(" + m.table() + ")").stream()
+                    .anyMatch(row -> m.column().equals(String.valueOf(row.get("name"))));
+            if (present) {
+                continue;
+            }
+            List<D1Client.D1Statement> statements = new ArrayList<>();
+            statements.add(new D1Client.D1Statement(
+                    "ALTER TABLE " + m.table() + " ADD COLUMN " + m.column() + " " + m.definition(), List.of()));
+            m.afterAdd().forEach(sql -> statements.add(new D1Client.D1Statement(sql, List.of())));
+            d1Client.batch(statements);
+            log.info("Cloudflare D1 migration: added {}.{}", m.table(), m.column());
+        }
+        d1Client.batch(MIGRATED_INDEXES.stream().map(sql -> new D1Client.D1Statement(sql, List.of())).toList());
     }
 
     static List<String> loadSchema() throws IOException {

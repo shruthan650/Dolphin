@@ -19,14 +19,18 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final AdviceRepository adviceRepository;
+    private final ClassService classService;
 
-    public ProjectService(ProjectRepository projectRepository, AdviceRepository adviceRepository) {
+    public ProjectService(ProjectRepository projectRepository, AdviceRepository adviceRepository,
+                          ClassService classService) {
         this.projectRepository = projectRepository;
         this.adviceRepository = adviceRepository;
+        this.classService = classService;
     }
 
-    /** ownerId always comes from the authenticated student, never from the request. */
+    /** ownerId always comes from the authenticated student; the class must be one the student has joined. */
     public ProjectResponse create(String studentId, CreateProjectRequest request) {
+        classService.requireEnrolled(studentId, request.classId().trim());
         Project project = ProjectMapper.toEntity(request, studentId, Instant.now());
         return ProjectMapper.toResponse(projectRepository.save(project));
     }
@@ -41,6 +45,10 @@ public class ProjectService {
 
     public ProjectResponse update(String studentId, String projectId, UpdateProjectRequest request) {
         Project project = requireOwned(studentId, projectId, "modify");
+        if (request.classId() != null && !request.classId().isBlank()) {
+            classService.requireEnrolled(studentId, request.classId().trim());
+            project.setClassId(request.classId().trim());
+        }
         ProjectMapper.applyUpdate(project, request, Instant.now());
         return ProjectMapper.toResponse(projectRepository.save(project));
     }

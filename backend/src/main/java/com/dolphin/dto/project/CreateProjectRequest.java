@@ -6,7 +6,10 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-/** ownerId is deliberately absent: the owner always comes from the authenticated student. */
+/**
+ * ownerId is deliberately absent: the owner always comes from the authenticated student. classId must be a class the
+ * student is enrolled in.
+ */
 public record CreateProjectRequest(
         @NotBlank(message = "Title is required")
         @Size(max = 120, message = "Title must be at most 120 characters")
@@ -25,6 +28,9 @@ public record CreateProjectRequest(
 
         @Size(max = 20, message = "At most 20 technologies are allowed")
         List<@NotBlank(message = "Technology names cannot be blank")
-             @Size(max = 40, message = "Technology names must be at most 40 characters") String> technologies
+             @Size(max = 40, message = "Technology names must be at most 40 characters") String> technologies,
+
+        @NotBlank(message = "Class is required")
+        String classId
 ) {
 }

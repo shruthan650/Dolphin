@@ -8,4 +8,5 @@ export const adminService = {
   createTeacher: (payload) => api.post('/admin/teachers', payload).then((r) => r.data),
   setTeacherActive: (id, active) => api.patch(`/admin/teachers/${id}/status`, { active }).then((r) => r.data),
   deleteTeacher: (id) => api.delete(`/admin/teachers/${id}`),
+  deleteStudent: (id) => api.delete(`/admin/students/${id}`),
 };

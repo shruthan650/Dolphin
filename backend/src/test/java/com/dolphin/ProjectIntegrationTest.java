@@ -26,7 +26,7 @@ class ProjectIntegrationTest extends IntegrationTestSupport {
                         "title", "Smart Campus", "description", "Smart campus management system",
                         "githubUrl", "https://github.com/x/smart-campus", "liveUrl", "https://smart.example.com",
                         "technologies", List.of("React", "Spring Boot", "Java"),
-                        "ownerId", "someone-else")), student))
+                        "ownerId", "someone-else", "classId", classIdFor(student))), student))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.ownerId").value(student.id()))
                 .andExpect(jsonPath("$.title").value("Smart Campus"))
@@ -39,7 +39,7 @@ class ProjectIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void teacherCannotCreateProject() throws Exception {
-        mvc.perform(auth(withJson(post("/api/projects"), Map.of("title", "X")), createTeacher()))
+        mvc.perform(auth(withJson(post("/api/projects"), Map.of("title", "X", "classId", "any")), createTeacher()))
                 .andExpect(status().isForbidden());
     }
 
@@ -50,7 +50,8 @@ class ProjectIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.title").exists())
                 .andExpect(jsonPath("$.errors.githubUrl").exists())
-                .andExpect(jsonPath("$.errors.liveUrl").exists());
+                .andExpect(jsonPath("$.errors.liveUrl").exists())
+                .andExpect(jsonPath("$.errors.classId").exists());
     }
 
     @Test

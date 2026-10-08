@@ -3,14 +3,16 @@ import Button from '../common/Button';
 import Icon from '../common/Icon';
 import Input from '../common/Input';
 import { validateOptionalUrl } from '../../utils/validation';
+import ClassSelect from './ClassSelect';
 import FormAlert from './FormAlert';
 import { useForm } from './useForm';
 
-const EMPTY = { title: '', description: '', githubUrl: '', liveUrl: '', technologies: [] };
+const EMPTY = { title: '', description: '', githubUrl: '', liveUrl: '', technologies: [], classId: '' };
 
 function validate(values) {
   const errors = {};
   if (!values.title.trim()) errors.title = 'Title is required';
+  if (!values.classId) errors.classId = 'Choose the class this project belongs to';
   const github = validateOptionalUrl(values.githubUrl, 'GitHub URL');
   if (github) errors.githubUrl = github;
   const live = validateOptionalUrl(values.liveUrl, 'Live URL');
@@ -18,8 +20,11 @@ function validate(values) {
   return errors;
 }
 
-/** Student project form (create + edit). The owner is never sent; the backend takes it from the JWT. */
-export default function ProjectForm({ initialValues, submitLabel = 'Create project', onSubmit, onCancel }) {
+/**
+ * Student project form (create + edit). The owner is never sent; the backend takes it from the JWT.
+ * classes are the student's joined classes; a single class is preselected.
+ */
+export default function ProjectForm({ initialValues, classes = [], submitLabel = 'Create project', onSubmit, onCancel }) {
   const start = initialValues
     ? {
         title: initialValues.title ?? '',
@@ -27,8 +32,9 @@ export default function ProjectForm({ initialValues, submitLabel = 'Create proje
         githubUrl: initialValues.githubUrl ?? '',
         liveUrl: initialValues.liveUrl ?? '',
         technologies: initialValues.technologies ?? [],
+        classId: initialValues.classId ?? '',
       }
-    : EMPTY;
+    : { ...EMPTY, classId: classes.length === 1 ? classes[0].id : '' };
   const { values, setField, bind, handleSubmit, submitting, formError, errors } = useForm(start, validate, (v) =>
     onSubmit({
       title: v.title.trim(),
@@ -36,6 +42,7 @@ export default function ProjectForm({ initialValues, submitLabel = 'Create proje
       githubUrl: v.githubUrl.trim(),
       liveUrl: v.liveUrl.trim(),
       technologies: v.technologies,
+      classId: v.classId,
     }),
   );
   const [techInput, setTechInput] = useState('');
@@ -63,6 +70,7 @@ export default function ProjectForm({ initialValues, submitLabel = 'Create proje
   return (
     <form onSubmit={handleSubmit} noValidate className="form">
       <FormAlert message={formError} />
+      <ClassSelect classes={classes} {...bind('classId')} />
       <Input label="Project title" placeholder="Smart Campus" required maxLength={120} {...bind('title')} />
       <Input
         as="textarea"

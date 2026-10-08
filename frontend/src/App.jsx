@@ -7,6 +7,7 @@ import { ROLE_HOME } from './utils/format';
 
 import Login from './pages/auth/Login';
 import NotFound from './pages/NotFound';
+import AccountSettings from './pages/account/AccountSettings';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTeachers from './pages/admin/Teachers';
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="teachers" element={<AdminTeachers />} />
             <Route path="students" element={<AdminStudents />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="profile" element={<AccountSettings />} />
           </Route>
 
           <Route path="/teacher" element={<RoleRoute role="TEACHER" />}>
@@ -58,6 +60,7 @@ export default function App() {
             <Route path="students" element={<TeacherStudents />} />
             <Route path="students/:id" element={<StudentDetails />} />
             <Route path="progress" element={<Progress />} />
+            <Route path="profile" element={<AccountSettings />} />
           </Route>
 
           <Route path="/student" element={<RoleRoute role="STUDENT" />}>

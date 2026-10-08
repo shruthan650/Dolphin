@@ -44,6 +44,7 @@ public class JwtService {
                 .subject(user.getId())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
+                .claim("ver", user.getTokenVersion())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + validityMs))
                 .signWith(key)
@@ -58,16 +59,19 @@ public class JwtService {
      */
     public TokenClaims parse(String token) {
         Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        Integer version = claims.get("ver", Integer.class);
         return new TokenClaims(
                 claims.getSubject(),
                 claims.get("email", String.class),
-                Role.valueOf(claims.get("role", String.class)));
+                Role.valueOf(claims.get("role", String.class)),
+                version == null ? 0 : version);
     }
 
     public long getExpirationMs() {
         return expirationMs;
     }
 
-    public record TokenClaims(String userId, String email, Role role) {
+    /** @param tokenVersion the user's token version when the token was issued (0 for tokens issued before it existed) */
+    public record TokenClaims(String userId, String email, Role role, int tokenVersion) {
     }
 }

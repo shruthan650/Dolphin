@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.util.Map;
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -108,20 +109,46 @@ public abstract class IntegrationTestSupport {
                 .andExpect(status().isOk());
     }
 
+    /**
+     * A class the student is enrolled in: their most recently created class, or a new class (with a new teacher)
+     * joined for the purpose when they have none.
+     */
+    protected String classIdFor(Account student) throws Exception {
+        JsonNode classes = read(mvc.perform(auth(get("/api/student/classes"), student))
+                .andExpect(status().isOk())
+                .andReturn());
+        if (classes.isEmpty()) {
+            JsonNode cls = createClass(createTeacher());
+            joinClass(student, cls.get("classCode").asText());
+            return cls.get("id").asText();
+        }
+        return classes.get(0).get("id").asText();
+    }
+
+    /** Creates a project in one of the student's classes (see {@link #classIdFor}). */
     protected String createProject(Account student, String title) throws Exception {
+        return createProject(student, title, classIdFor(student));
+    }
+
+    protected String createProject(Account student, String title, String classId) throws Exception {
         MvcResult result = mvc.perform(auth(withJson(post("/api/projects"), Map.of(
                         "title", title, "description", "desc",
                         "githubUrl", "https://github.com/example/repo",
-                        "technologies", java.util.List.of("React", "Spring Boot"))), student))
+                        "technologies", java.util.List.of("React", "Spring Boot"), "classId", classId)), student))
                 .andExpect(status().isCreated())
                 .andReturn();
         return read(result).get("id").asText();
     }
 
+    /** Creates a LeetCode entry in one of the student's classes (see {@link #classIdFor}). */
     protected String createLeetCode(Account student, String problem) throws Exception {
+        return createLeetCode(student, problem, classIdFor(student));
+    }
+
+    protected String createLeetCode(Account student, String problem, String classId) throws Exception {
         MvcResult result = mvc.perform(auth(withJson(post("/api/leetcode"), Map.of(
-                        "problemName", problem, "difficulty", "EASY", "status", "SOLVED", "topic", "Arrays")),
-                        student))
+                        "problemName", problem, "difficulty", "EASY", "status", "SOLVED", "topic", "Arrays",
+                        "classId", classId)), student))
                 .andExpect(status().isCreated())
                 .andReturn();
         return read(result).get("id").asText();

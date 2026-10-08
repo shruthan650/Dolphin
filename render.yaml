@@ -22,7 +22,7 @@ services:
         sync: false
       - key: CLOUDFLARE_API_TOKEN
         sync: false
-      # Admin login. The backend sets the admin's password to this value on every start.
+      # Admin login, used only to create the admin when the database has no admin yet.
       - key: ADMIN_EMAIL
         value: admin@dolphin.com
       - key: ADMIN_PASSWORD

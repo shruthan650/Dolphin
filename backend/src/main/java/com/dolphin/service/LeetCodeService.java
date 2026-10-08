@@ -19,14 +19,18 @@ public class LeetCodeService {
 
     private final LeetCodeRepository leetCodeRepository;
     private final AdviceRepository adviceRepository;
+    private final ClassService classService;
 
-    public LeetCodeService(LeetCodeRepository leetCodeRepository, AdviceRepository adviceRepository) {
+    public LeetCodeService(LeetCodeRepository leetCodeRepository, AdviceRepository adviceRepository,
+                           ClassService classService) {
         this.leetCodeRepository = leetCodeRepository;
         this.adviceRepository = adviceRepository;
+        this.classService = classService;
     }
 
-    /** studentId always comes from the authenticated student, never from the request. */
+    /** studentId always comes from the authenticated student; the class must be one the student has joined. */
     public LeetCodeResponse create(String studentId, CreateLeetCodeRequest request) {
+        classService.requireEnrolled(studentId, request.classId().trim());
         LeetCodeEntry entry = LeetCodeMapper.toEntity(request, studentId, Instant.now());
         return LeetCodeMapper.toResponse(leetCodeRepository.save(entry));
     }
@@ -37,6 +41,10 @@ public class LeetCodeService {
 
     public LeetCodeResponse update(String studentId, String entryId, UpdateLeetCodeRequest request) {
         LeetCodeEntry entry = requireOwned(studentId, entryId, "modify");
+        if (request.classId() != null && !request.classId().isBlank()) {
+            classService.requireEnrolled(studentId, request.classId().trim());
+            entry.setClassId(request.classId().trim());
+        }
         LeetCodeMapper.applyUpdate(entry, request, Instant.now());
         return LeetCodeMapper.toResponse(leetCodeRepository.save(entry));
     }

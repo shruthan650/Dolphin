@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { setUnauthorizedHandler, TOKEN_KEY, USER_KEY } from '../services/api';
 import { authService } from '../services/authService';
 import { studentService } from '../services/studentService';
+import { userService } from '../services/userService';
 
 export const AuthContext = createContext(null);
 
@@ -69,6 +70,23 @@ export function AuthProvider({ children }) {
     return sessionUser;
   }, []);
 
+  /** Applies a profile update returned by the API (a UserResponse). */
+  const applyUser = useCallback((response) => {
+    const sessionUser = toSessionUser(response);
+    localStorage.setItem(USER_KEY, JSON.stringify(sessionUser));
+    setUser(sessionUser);
+    return sessionUser;
+  }, []);
+
+  const updateProfile = useCallback(async (payload) => applyUser(await userService.updateProfile(payload)), [applyUser]);
+
+  // Email and password changes revoke older tokens, so the response carries a new session.
+  const changeEmail = useCallback(async (payload) => storeSession(await userService.changeEmail(payload)), [storeSession]);
+  const changePassword = useCallback(
+    async (payload) => storeSession(await userService.changePassword(payload)),
+    [storeSession],
+  );
+
   const logout = useCallback(() => {
     clearSession();
     setSessionMessage(null);
@@ -118,9 +136,25 @@ export function AuthProvider({ children }) {
       login,
       register,
       updateProfileLinks,
+      updateProfile,
+      changeEmail,
+      changePassword,
       logout,
     }),
-    [token, user, initializing, sessionMessage, loggedOutManually, login, register, updateProfileLinks, logout],
+    [
+      token,
+      user,
+      initializing,
+      sessionMessage,
+      loggedOutManually,
+      login,
+      register,
+      updateProfileLinks,
+      updateProfile,
+      changeEmail,
+      changePassword,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

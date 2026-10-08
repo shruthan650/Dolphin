@@ -5,8 +5,11 @@ import Icon from '../common/Icon';
 import { formatDate } from '../../utils/format';
 import Table from './Table';
 
-/** LeetCode entries. showStudent adds a student column (teacher view); onEdit/onDelete add owner actions. */
-export default function LeetCodeTable({ entries, showStudent = false, onEdit, onDelete }) {
+/**
+ * LeetCode entries. showStudent adds a student column (teacher view); onEdit/onDelete add owner actions.
+ * classLabel(entry) adds a Class column (null = unassigned).
+ */
+export default function LeetCodeTable({ entries, showStudent = false, classLabel, onEdit, onDelete }) {
   const columns = [
     {
       key: 'problemName',
@@ -24,6 +27,11 @@ export default function LeetCodeTable({ entries, showStudent = false, onEdit, on
       key: 'studentName',
       header: 'Student',
       render: (e) => <Link to={`/teacher/students/${e.studentId}`}>{e.studentName}</Link>,
+    },
+    classLabel && {
+      key: 'class',
+      header: 'Class',
+      render: (e) => classLabel(e) || <span className="muted">Unassigned</span>,
     },
     { key: 'difficulty', header: 'Difficulty', render: (e) => <Badge value={e.difficulty} /> },
     { key: 'status', header: 'Status', render: (e) => <Badge value={e.status} /> },

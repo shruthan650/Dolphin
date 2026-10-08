@@ -139,7 +139,7 @@ export default function ClassDetails() {
       <ConfirmDialog
         open={confirmDelete}
         title="Delete class?"
-        message={`"${cls.className}" will be deleted and its ${cls.studentCount} student(s) will be unenrolled. Student projects and LeetCode entries are kept.`}
+        message={`"${cls.className}" will be deleted and its ${cls.studentCount} student(s) will be unenrolled. Their projects and LeetCode entries are kept, no longer assigned to a class.`}
         confirmLabel="Delete class"
         loading={busy}
         onConfirm={deleteClass}
@@ -149,7 +149,7 @@ export default function ClassDetails() {
       <ConfirmDialog
         open={Boolean(removing)}
         title="Remove student?"
-        message={`${removing?.name} will be removed from ${cls.className}. They can rejoin with the class code.`}
+        message={`${removing?.name} will be removed from ${cls.className}. Their projects, LeetCode records and advice in this class will be permanently deleted. Their account and their data in other classes are not affected.`}
         confirmLabel="Remove"
         loading={busy}
         onConfirm={removeStudent}

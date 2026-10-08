@@ -73,16 +73,16 @@ public class D1LeetCodeRepository implements LeetCodeRepository {
             entry.setId(UUID.randomUUID().toString());
         }
         d1.execute("""
-                INSERT INTO leetcode_entries (id, student_id, problem_name, problem_url, difficulty, status, topic,
-                                              solved_at, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO leetcode_entries (id, student_id, class_id, problem_name, problem_url, difficulty, status,
+                                              topic, solved_at, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
-                    student_id = excluded.student_id, problem_name = excluded.problem_name,
+                    student_id = excluded.student_id, class_id = excluded.class_id, problem_name = excluded.problem_name,
                     problem_url = excluded.problem_url, difficulty = excluded.difficulty, status = excluded.status,
                     topic = excluded.topic, solved_at = excluded.solved_at, created_at = excluded.created_at,
                     updated_at = excluded.updated_at
                 """,
-                entry.getId(), entry.getStudentId(), entry.getProblemName(), entry.getProblemUrl(),
+                entry.getId(), entry.getStudentId(), entry.getClassId(), entry.getProblemName(), entry.getProblemUrl(),
                 entry.getDifficulty(), entry.getStatus(), entry.getTopic(), entry.getSolvedAt(),
                 entry.getCreatedAt(), entry.getUpdatedAt());
         return entry.copy();
@@ -107,6 +107,7 @@ public class D1LeetCodeRepository implements LeetCodeRepository {
         LeetCodeEntry entry = new LeetCodeEntry();
         entry.setId(string(row, "id"));
         entry.setStudentId(string(row, "student_id"));
+        entry.setClassId(string(row, "class_id"));
         entry.setProblemName(string(row, "problem_name"));
         entry.setProblemUrl(string(row, "problem_url"));
         entry.setDifficulty(enumValue(row, "difficulty", Difficulty.class));

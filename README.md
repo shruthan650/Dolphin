@@ -51,15 +51,34 @@ Spring Boot application. Data is persisted in Cloudflare D1; no local database s
 `routes/ProtectedRoute.jsx` + `RoleRoute.jsx`, reusable `components/` (buttons, inputs, modals, tables, cards,
 empty/loading/error states, toasts) and role-specific `pages/`.
 
+Light and dark themes come from CSS variables in `styles/index.css` (`:root` and `:root[data-theme='dark']`).
+`context/ThemeContext.jsx` follows the system preference until the user picks a theme with the header toggle; the
+choice is kept in `localStorage` (`dolphin.theme`) and applied before first paint by a small script in `index.html`.
+
 ---
 
 ## Roles
 
 | Role | Can | Cannot |
 |---|---|---|
-| **ADMIN** | Sign in, view system dashboard, create teachers, list teachers / students / users, activate, deactivate or delete teachers | Create classes, join classes, create projects or LeetCode entries |
-| **TEACHER** | Create / edit / delete **own** classes, see class codes, view students enrolled in **own** classes and their projects & LeetCode progress, remove a student from own class, delete a student enrolled in an own class, give advice on their students' projects and LeetCode problems | Create teachers, access admin APIs, touch another teacher's classes, see students outside own classes, modify student data |
-| **STUDENT** | Self-register, join classes by code, create / update / delete **own** projects and LeetCode entries, view own dashboard and profile | Create teachers or classes, access admin or teacher APIs, view or modify another student's data |
+| **ADMIN** | Sign in, view system dashboard, create teachers, list teachers / students / users, activate, deactivate or delete teachers, delete students, edit own profile | Create classes, join classes, create projects or LeetCode entries, delete own account |
+| **TEACHER** | Create / edit / delete **own** classes, see class codes, view students enrolled in **own** classes and their projects & LeetCode progress **of those classes**, remove a student from an own class (deleting that class's data of the student), give advice on their students' work, edit own profile, delete own account | Create teachers or admins, access admin APIs, touch another teacher's classes, see students outside own classes, delete accounts of others |
+| **STUDENT** | Self-register (always as STUDENT), join and leave classes, create / update / delete **own** projects and LeetCode entries (each belongs to one joined class), edit own profile, delete own account | Choose a role, create teachers or classes, access admin or teacher APIs, view or modify another user's data |
+
+### Data ownership
+
+| Data | Scope | Removed when |
+|---|---|---|
+| Name, email, password, GitHub / LeetCode profile | Global (account) | The account is deleted |
+| Class membership | Class | The student leaves / is removed, the class or the account is deleted |
+| Projects, LeetCode entries | Class (`class_id`) | The student leaves / is removed from **that** class, or the account is deleted |
+| Advice | The project / entry it is about | Its target, the student or the authoring teacher is deleted |
+
+Leaving or being removed from a class deletes only the student's data **of that class**, in one atomic D1 batch;
+other classes and the account are untouched. Deleting a class (or its teacher) unenrols its students and keeps their
+work as *unassigned* (`class_id = NULL`). Projects and entries created before classes were tracked were assigned to
+the student's class when the student was in exactly one; otherwise they are unassigned. Unassigned work is visible to
+all of the student's teachers and is never deleted by leaving a class.
 
 Security is enforced on the backend:
 
@@ -68,6 +87,12 @@ Security is enforced on the backend:
   teacher`, teacher may only read students enrolled in one of their classes). Violations return **403**.
 * Owner IDs (`ownerId`, `studentId`, `teacherId`) are **never** accepted from the client; they come from the JWT.
 * Passwords are hashed with **BCrypt**; deactivated accounts are rejected on every request.
+* **Login lockout** — 3 consecutive wrong passwords lock the account for 10 minutes (HTTP 429, even with the right
+  password); it unlocks by itself and a successful login resets the count. The counter and lock are stored in D1 and
+  updated with single atomic statements, so restarts, several instances or parallel requests cannot bypass it. Login
+  failures never reveal whether an email exists.
+* Changing the password or email revokes every older token (a `ver` claim checked against `users.token_version`);
+  the response carries a new token for the current session.
 
 Frontend route guards only improve UX; they are not the security boundary.
 
@@ -156,14 +181,14 @@ Render redeploys automatically.
 
 * **Free Render services sleep after 15 minutes without traffic**; the first request afterwards takes about a minute
   while the backend starts.
-* `ADMIN_PASSWORD` is applied on every start. Local runs and Render share the D1 database, so keep the value in
-  `backend/d1.env` identical to Render's, otherwise each start resets the other's admin password.
+* `ADMIN_EMAIL` / `ADMIN_PASSWORD` are only used to create the admin when the database has no admin yet; afterwards
+  the admin changes their email and password from the Profile page.
 * Changing `VITE_API_URL` on Vercel requires a redeploy (it is baked in at build time).
 
 ## Development admin
 
-On startup the backend creates the admin account if it does not exist yet, and sets its password to
-`ADMIN_PASSWORD` (changing the variable and restarting changes the password):
+On startup the backend creates the admin account from these variables when no admin exists yet (the first start
+against an empty database). They are not re-applied later, so a password or email changed on the Profile page sticks:
 
 | Email | Password |
 |---|---|
@@ -194,6 +219,19 @@ All endpoints are under `/api`. Protected endpoints require `Authorization: Bear
 | POST | `/auth/register` | Public | Student self-registration `{name, email, password, confirmPassword, githubUrl, leetCodeUrl}` → same as login (201). Both profile URLs are required (`https://github.com/<user>`, `https://leetcode.com/u/<user>`) |
 | GET | `/auth/me` | Any signed-in user | Current user profile |
 
+Login answers 401 `Invalid email or password` for an unknown email or wrong password, and 429 `Too many login attempts.
+Please try again later.` while the account is locked.
+
+### Own account (any role)
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/users/me` | Own profile (never contains the password hash) |
+| PUT | `/users/me` | `{name, githubUrl, leetCodeUrl}`; the links are required for students, optional otherwise |
+| PUT | `/users/me/email` | `{newEmail, currentPassword}` → new session `{token, …}` (409 duplicate, 400 wrong password) |
+| PATCH | `/users/me/password` | `{currentPassword, newPassword, confirmPassword}` → new session; other sessions are signed out |
+| DELETE | `/users/me` | `{currentPassword, confirmation: "DELETE"}` deletes own account (204; 403 for admins) |
+
 ### Admin (`ADMIN`)
 
 | Method | Path | Description |
@@ -202,7 +240,8 @@ All endpoints are under `/api`. Protected endpoints require `Authorization: Bear
 | POST | `/admin/teachers` | Create teacher `{name, email, password, confirmPassword}` (201, 409 on duplicate email) |
 | GET | `/admin/teachers` | List teachers |
 | PATCH | `/admin/teachers/{id}/status` | `{active: true/false}` activate / deactivate |
-| DELETE | `/admin/teachers/{id}` | Delete a teacher and their classes; enrolled students keep their accounts (204) |
+| DELETE | `/admin/teachers/{id}` | Delete a teacher and their classes; enrolled students keep their accounts and work (204) |
+| DELETE | `/admin/students/{id}` | Delete a student with their projects, LeetCode entries, advice and enrolments (204) |
 | GET | `/admin/students` | List students |
 | GET | `/admin/users` | List all users |
 
@@ -214,8 +253,8 @@ All endpoints are under `/api`. Protected endpoints require `Authorization: Bear
 | GET | `/classes/mine` | TEACHER | Own classes |
 | GET | `/classes/{id}` | TEACHER (owner) | Class + enrolled students with progress summary |
 | PUT | `/classes/{id}` | TEACHER (owner) | Update class |
-| DELETE | `/classes/{id}` | TEACHER (owner) | Delete class (204) |
-| DELETE | `/classes/{id}/students/{studentId}` | TEACHER (owner) | Remove student (204) |
+| DELETE | `/classes/{id}` | TEACHER (owner) | Delete class; students' work of it becomes unassigned (204) |
+| DELETE | `/classes/{id}/students/{studentId}` | TEACHER (owner) | Remove student and their data of this class (204) |
 | POST | `/classes/join/{classCode}` | STUDENT | Join (404 unknown code, 409 already joined) |
 
 ### Teacher (`TEACHER`)
@@ -225,11 +264,10 @@ All endpoints are under `/api`. Protected endpoints require `Authorization: Bear
 | GET | `/teacher/dashboard` | Classes, students, projects, LeetCode entries, problems solved, recent activity |
 | GET | `/teacher/students` | Students in own classes |
 | GET | `/teacher/students/{studentId}` | Student profile, stats, projects, LeetCode (403 if not in own class) |
-| DELETE | `/teacher/students/{studentId}` | Delete a student in an own class, with their projects, LeetCode entries and all enrolments (204; 403 if not in own class) |
-| GET | `/teacher/students/{studentId}/projects` | Student's projects |
-| GET | `/teacher/students/{studentId}/leetcode` | Student's LeetCode entries |
-| GET | `/teacher/projects` | All projects from own students |
-| GET | `/teacher/leetcode` | All LeetCode entries from own students |
+| GET | `/teacher/students/{studentId}/projects` | Student's projects of own classes (and unassigned ones) |
+| GET | `/teacher/students/{studentId}/leetcode` | Student's LeetCode entries of own classes (and unassigned ones) |
+| GET | `/teacher/projects` | Projects of own classes, with `ownerName` and `className` |
+| GET | `/teacher/leetcode` | LeetCode entries of own classes, with `studentName` and `className` |
 
 ### Student (`STUDENT`)
 
@@ -237,15 +275,16 @@ All endpoints are under `/api`. Protected endpoints require `Authorization: Bear
 |---|---|---|
 | GET | `/student/dashboard` | Joined classes, project count, LeetCode stats, recent projects & problems |
 | GET | `/student/classes` | Joined classes |
+| DELETE | `/student/classes/{classId}` | Leave a class; own projects, LeetCode entries and advice of that class are deleted (204; 404 if not enrolled) |
 | PUT | `/student/profile-links` | Add/update `{githubUrl, leetCodeUrl}` → updated user profile |
-| POST | `/projects` | Create `{title, description, githubUrl, liveUrl, technologies[]}` (201) |
+| POST | `/projects` | Create `{classId, title, description, githubUrl, liveUrl, technologies[]}` (201; 403 if not enrolled in the class) |
 | GET | `/projects/my` | Own projects |
 | GET | `/projects/{id}` | Own project |
-| PUT | `/projects/{id}` | Update own project (403 if not owner) |
+| PUT | `/projects/{id}` | Update own project; optional `classId` moves it to another joined class (403 if not owner) |
 | DELETE | `/projects/{id}` | Delete own project (204) |
-| POST | `/leetcode` | Create `{problemName, problemUrl, difficulty, status, topic, solvedAt}` (201) |
+| POST | `/leetcode` | Create `{classId, problemName, problemUrl, difficulty, status, topic, solvedAt}` (201; 403 if not enrolled in the class) |
 | GET | `/leetcode/my` | Own entries |
-| PUT | `/leetcode/{id}` | Update own entry (403 if not owner) |
+| PUT | `/leetcode/{id}` | Update own entry; optional `classId` as for projects (403 if not owner) |
 | DELETE | `/leetcode/{id}` | Delete own entry (204) |
 
 `difficulty`: `EASY | MEDIUM | HARD` · `status`: `SOLVED | ATTEMPTED | IN_PROGRESS`.

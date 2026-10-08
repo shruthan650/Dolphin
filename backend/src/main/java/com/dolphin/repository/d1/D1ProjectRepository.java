@@ -70,16 +70,16 @@ public class D1ProjectRepository implements ProjectRepository {
             project.setId(UUID.randomUUID().toString());
         }
         d1.execute("""
-                INSERT INTO projects (id, owner_id, title, description, github_url, live_url, technologies,
+                INSERT INTO projects (id, owner_id, class_id, title, description, github_url, live_url, technologies,
                                       created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
-                    owner_id = excluded.owner_id, title = excluded.title, description = excluded.description,
+                    owner_id = excluded.owner_id, class_id = excluded.class_id, title = excluded.title, description = excluded.description,
                     github_url = excluded.github_url, live_url = excluded.live_url,
                     technologies = excluded.technologies, created_at = excluded.created_at,
                     updated_at = excluded.updated_at
                 """,
-                project.getId(), project.getOwnerId(), project.getTitle(), project.getDescription(),
+                project.getId(), project.getOwnerId(), project.getClassId(), project.getTitle(), project.getDescription(),
                 project.getGithubUrl(), project.getLiveUrl(), writeTechnologies(project.getTechnologies()),
                 project.getCreatedAt(), project.getUpdatedAt());
         return project.copy();
@@ -104,6 +104,7 @@ public class D1ProjectRepository implements ProjectRepository {
         Project project = new Project();
         project.setId(string(row, "id"));
         project.setOwnerId(string(row, "owner_id"));
+        project.setClassId(string(row, "class_id"));
         project.setTitle(string(row, "title"));
         project.setDescription(string(row, "description"));
         project.setGithubUrl(string(row, "github_url"));

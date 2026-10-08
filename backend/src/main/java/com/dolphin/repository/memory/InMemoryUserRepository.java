@@ -6,6 +6,7 @@ import com.dolphin.repository.UserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -79,6 +80,9 @@ public class InMemoryUserRepository implements UserRepository {
             idByEmail.remove(normalize(previous.getEmail()));
         }
         User stored = user.copy();
+        // Like D1, save() never changes the lockout fields; only the methods below do.
+        stored.setFailedLoginAttempts(previous == null ? 0 : previous.getFailedLoginAttempts());
+        stored.setLockedUntil(previous == null ? null : previous.getLockedUntil());
         users.put(stored.getId(), stored);
         if (stored.getEmail() != null) {
             idByEmail.put(normalize(stored.getEmail()), stored.getId());
@@ -102,6 +106,30 @@ public class InMemoryUserRepository implements UserRepository {
     @Override
     public long countByRole(Role role) {
         return users.values().stream().filter(u -> u.getRole() == role).count();
+    }
+
+    @Override
+    public synchronized Optional<LoginAttemptState> recordFailedLogin(String userId, Instant now, int maxAttempts,
+                                                                      Instant lockUntil) {
+        User user = users.get(userId);
+        if (user == null || user.isLockedAt(now)) {
+            return Optional.empty();
+        }
+        int count = user.getLockedUntil() != null ? 1 : user.getFailedLoginAttempts() + 1;
+        user.setFailedLoginAttempts(count);
+        user.setLockedUntil(count >= maxAttempts ? lockUntil : null);
+        return Optional.of(new LoginAttemptState(count, user.getLockedUntil()));
+    }
+
+    @Override
+    public synchronized boolean resetFailedLogins(String userId, Instant now) {
+        User user = users.get(userId);
+        if (user == null || user.isLockedAt(now)) {
+            return false;
+        }
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
+        return true;
     }
 
     private static String normalize(String email) {

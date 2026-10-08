@@ -8,6 +8,8 @@ public class Project {
 
     private String id;
     private String ownerId;
+    /** The class this project belongs to; null for legacy projects or when the class was deleted. */
+    private String classId;
     private String title;
     private String description;
     private String githubUrl;
@@ -20,6 +22,7 @@ public class Project {
         Project copy = new Project();
         copy.id = id;
         copy.ownerId = ownerId;
+        copy.classId = classId;
         copy.title = title;
         copy.description = description;
         copy.githubUrl = githubUrl;
@@ -35,6 +38,9 @@ public class Project {
 
     public String getOwnerId() { return ownerId; }
     public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+
+    public String getClassId() { return classId; }
+    public void setClassId(String classId) { this.classId = classId; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

@@ -16,10 +16,18 @@ import { useToast } from '../../hooks/useToast';
 import { adviceService } from '../../services/adviceService';
 import { getErrorMessage } from '../../services/api';
 import { leetcodeService } from '../../services/leetcodeService';
+import { studentService } from '../../services/studentService';
 
 export default function LeetCode() {
   const { data, setData, loading, error, reload } = useApi(leetcodeService.mine);
   const advice = useApi(adviceService.mine);
+  const classes = useApi(studentService.classes);
+  const [classFilter, setClassFilter] = useState('ALL');
+  const classNames = useMemo(
+    () => Object.fromEntries((classes.data || []).map((c) => [c.id, c.className])),
+    [classes.data],
+  );
+  const hasClasses = classes.data?.length > 0;
   const problemAdvice = (advice.data || []).filter((a) => a.targetType === 'LEETCODE');
   const [editor, setEditor] = useState(null); // null | { entry?: object }
   const [deleting, setDeleting] = useState(null);
@@ -39,7 +47,15 @@ export default function LeetCode() {
     };
   }, [data]);
 
-  const filtered = useMemo(() => (data || []).filter((e) => status === 'ALL' || e.status === status), [data, status]);
+  const filtered = useMemo(
+    () =>
+      (data || []).filter(
+        (e) =>
+          (status === 'ALL' || e.status === status) &&
+          (classFilter === 'ALL' || (classFilter === 'NONE' ? !e.classId : e.classId === classFilter)),
+      ),
+    [data, status, classFilter],
+  );
 
   const save = async (values) => {
     if (editor.entry) {
@@ -74,11 +90,17 @@ export default function LeetCode() {
         title="LeetCode progress"
         subtitle="Log the problems you work on and track your growth"
         actions={
-          <Button icon="plus" onClick={() => setEditor({})}>
+          <Button icon="plus" onClick={() => setEditor({})} disabled={!hasClasses}>
             Add problem
           </Button>
         }
       />
+
+      {classes.data && !hasClasses && (
+        <Card title="Join a class first" subtitle="Every problem you log belongs to one of your classes">
+          <Button to="/student/class">Join a class</Button>
+        </Card>
+      )}
 
       {loading ? (
         <LoadingState variant="cards" label="Loading problems…" />
@@ -103,12 +125,23 @@ export default function LeetCode() {
             title="Problem list"
             actions={
               data.length > 0 && (
-                <select className="field-control field-control-sm" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
-                  <option value="ALL">All statuses</option>
-                  <option value="SOLVED">Solved</option>
-                  <option value="ATTEMPTED">Attempted</option>
-                  <option value="IN_PROGRESS">In progress</option>
-                </select>
+                <div className="toolbar">
+                  <select className="field-control field-control-sm" value={classFilter} onChange={(e) => setClassFilter(e.target.value)} aria-label="Filter by class">
+                    <option value="ALL">All classes</option>
+                {(classes.data || []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.className}
+                  </option>
+                ))}
+                    <option value="NONE">Unassigned</option>
+                  </select>
+                  <select className="field-control field-control-sm" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+                    <option value="ALL">All statuses</option>
+                    <option value="SOLVED">Solved</option>
+                    <option value="ATTEMPTED">Attempted</option>
+                    <option value="IN_PROGRESS">In progress</option>
+                  </select>
+                </div>
               )
             }
             padded={false}
@@ -119,15 +152,17 @@ export default function LeetCode() {
                 title="No problems logged yet."
                 message="Add the first problem you've worked on."
                 action={
-                  <Button icon="plus" onClick={() => setEditor({})}>
-                    Add problem
-                  </Button>
+                  hasClasses && (
+                    <Button icon="plus" onClick={() => setEditor({})}>
+                      Add problem
+                    </Button>
+                  )
                 }
               />
             ) : filtered.length === 0 ? (
-              <EmptyState icon="search" title="No problems with this status" />
+              <EmptyState icon="search" title="No matching problems" />
             ) : (
-              <LeetCodeTable entries={filtered} onEdit={(entry) => setEditor({ entry })} onDelete={setDeleting} />
+              <LeetCodeTable entries={filtered} classLabel={(e) => classNames[e.classId]} onEdit={(entry) => setEditor({ entry })} onDelete={setDeleting} />
             )}
           </Card>
         </>
@@ -137,6 +172,7 @@ export default function LeetCode() {
         {editor && (
           <LeetCodeForm
             initialValues={editor.entry}
+            classes={classes.data || []}
             submitLabel={editor.entry ? 'Save changes' : 'Add problem'}
             onSubmit={save}
             onCancel={() => setEditor(null)}

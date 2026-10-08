@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
+/** classId is optional: when present the project moves to that class (one the student is enrolled in). */
 public record UpdateProjectRequest(
         @NotBlank(message = "Title is required")
         @Size(max = 120, message = "Title must be at most 120 characters")
@@ -24,6 +25,8 @@ public record UpdateProjectRequest(
 
         @Size(max = 20, message = "At most 20 technologies are allowed")
         List<@NotBlank(message = "Technology names cannot be blank")
-             @Size(max = 40, message = "Technology names must be at most 40 characters") String> technologies
+             @Size(max = 40, message = "Technology names must be at most 40 characters") String> technologies,
+
+        String classId
 ) {
 }

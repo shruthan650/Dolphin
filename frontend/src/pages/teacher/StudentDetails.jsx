@@ -4,7 +4,7 @@ import AdviceList from '../../components/cards/AdviceList';
 import ProjectCard from '../../components/cards/ProjectCard';
 import StatCard from '../../components/cards/StatCard';
 import Badge from '../../components/common/Badge';
-import Button from '../../components/common/Button';
+import Icon from '../../components/common/Icon';
 import Card from '../../components/common/Card';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import EmptyState from '../../components/common/EmptyState';
@@ -19,6 +19,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { getErrorMessage } from '../../services/api';
 import { adviceService } from '../../services/adviceService';
+import { classService } from '../../services/classService';
 import { teacherService } from '../../services/teacherService';
 import { formatDate, initials } from '../../utils/format';
 
@@ -26,7 +27,7 @@ export default function StudentDetails() {
   const { id } = useParams();
   const { data, setData, loading, error, reload } = useApi(() => teacherService.student(id), [id]);
   const { user } = useAuth();
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [removingFrom, setRemovingFrom] = useState(null);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
@@ -47,14 +48,19 @@ export default function StudentDetails() {
     }
   };
 
-  const deleteStudent = async () => {
+  /** Removes the student from one of this teacher's classes; their data of that class is deleted. */
+  const removeFromClass = async () => {
     setBusy(true);
     try {
-      await teacherService.deleteStudent(id);
-      toast.success(`${data.name} deleted`);
-      navigate('/teacher/students', { replace: true });
+      await classService.removeStudent(removingFrom.id, id);
+      toast.success(`${data.name} removed from ${removingFrom.className}`);
+      const remaining = data.classes.filter((c) => c.id !== removingFrom.id);
+      setRemovingFrom(null);
+      if (remaining.length === 0) navigate('/teacher/students', { replace: true });
+      else reload();
     } catch (err) {
       toast.error(getErrorMessage(err));
+    } finally {
       setBusy(false);
     }
   };
@@ -77,29 +83,28 @@ export default function StudentDetails() {
 
   return (
     <>
-      <PageHeader
-        title="Student profile"
-        backTo="/teacher/students"
-        backLabel="Students"
-        actions={
-          <Button variant="danger" icon="trash" onClick={() => setConfirmDelete(true)}>
-            Delete student
-          </Button>
-        }
-      />
+      <PageHeader title="Student profile" backTo="/teacher/students" backLabel="Students" />
 
       <div className="profile-header">
         <span className="avatar avatar-lg">{initials(data.name)}</span>
-        <div>
+        <div className="profile-header-text">
           <h2 className="profile-name">
             {data.name} {!data.active && <Badge tone="red">Inactive</Badge>}
           </h2>
-          <p className="muted">{data.email}</p>
+          <p className="muted break-anywhere">{data.email}</p>
           <ProfileLinks githubUrl={data.githubUrl} leetCodeUrl={data.leetCodeUrl} />
           <div className="chip-row">
             {data.classes.map((c) => (
-              <span key={c.id} className="chip">
+              <span key={c.id} className="chip chip-removable">
                 {c.className}
+                <button
+                  type="button"
+                  aria-label={`Remove ${data.name} from ${c.className}`}
+                  title={`Remove from ${c.className}`}
+                  onClick={() => setRemovingFrom(c)}
+                >
+                  <Icon name="x" size={14} />
+                </button>
               </span>
             ))}
           </div>
@@ -143,7 +148,7 @@ export default function StudentDetails() {
         ) : (
           <div className="card-grid">
             {data.projects.map((p) => (
-              <ProjectCard key={p.id} project={p} />
+              <ProjectCard key={p.id} project={p} classLabel={p.className ?? null} />
             ))}
           </div>
         )}
@@ -153,18 +158,18 @@ export default function StudentDetails() {
         {data.leetCodeEntries.length === 0 ? (
           <EmptyState icon="code" title="No problems logged" message={`${data.name} has not logged any LeetCode problems.`} />
         ) : (
-          <LeetCodeTable entries={data.leetCodeEntries} />
+          <LeetCodeTable entries={data.leetCodeEntries} classLabel={(e) => e.className} />
         )}
       </Card>
 
       <ConfirmDialog
-        open={confirmDelete}
-        title="Delete student?"
-        message={`${data.name}'s account will be permanently deleted, together with their projects, LeetCode entries and enrolment in every class. This cannot be undone.`}
-        confirmLabel="Delete student"
+        open={Boolean(removingFrom)}
+        title="Remove student from class?"
+        message={`${data.name} will be removed from ${removingFrom?.className}. Their projects, LeetCode records and advice in this class will be permanently deleted. Their account and their data in other classes are not affected.`}
+        confirmLabel="Remove from class"
         loading={busy}
-        onConfirm={deleteStudent}
-        onCancel={() => setConfirmDelete(false)}
+        onConfirm={removeFromClass}
+        onCancel={() => setRemovingFrom(null)}
       />
     </>
   );

@@ -5,7 +5,9 @@ import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
 import ProfileLinks from '../../components/common/ProfileLinks';
 import ProfileLinksForm from '../../components/forms/ProfileLinksForm';
+import { AccountSections } from '../account/AccountSettings';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { authService } from '../../services/authService';
 import { studentService } from '../../services/studentService';
@@ -19,6 +21,7 @@ async function loadProfile() {
 export default function Profile() {
   const { data, loading, error, reload } = useApi(loadProfile);
   const toast = useToast();
+  const { user } = useAuth();
 
   if (loading) return <LoadingState label="Loading profile…" />;
   if (error) return <ErrorState title="Unable to load profile" message={error.message} onRetry={reload} />;
@@ -31,10 +34,11 @@ export default function Profile() {
       <PageHeader title="Profile" subtitle="Your account and progress summary" />
 
       <div className="profile-header">
-        <span className="avatar avatar-lg">{initials(me.name)}</span>
-        <div>
-          <h2 className="profile-name">{me.name}</h2>
-          <p className="muted">{me.email}</p>
+        <span className="avatar avatar-lg">{initials(user?.name ?? me.name)}</span>
+        <div className="profile-header-text">
+          {/* The session user reflects name/email changes made below without reloading the page. */}
+          <h2 className="profile-name">{user?.name ?? me.name}</h2>
+          <p className="muted break-anywhere">{user?.email ?? me.email}</p>
           <ProfileLinks githubUrl={me.githubUrl} leetCodeUrl={me.leetCodeUrl} />
           <div className="chip-row">
             <Badge value={me.role} />
@@ -96,6 +100,8 @@ export default function Profile() {
           }}
         />
       </Card>
+
+      <AccountSections />
     </>
   );
 }

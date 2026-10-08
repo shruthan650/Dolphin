@@ -34,15 +34,19 @@ public class StudentProgressAssembler {
 
     /**
      * @param studentIds students to summarise
-     * @param classes    the teacher's classes, used to list which of them each student belongs to
+     * @param classes    the teacher's classes, used to list which of them each student belongs to; only projects and
+     *                   LeetCode entries visible through these classes are counted (see {@link TeacherScope})
      */
     public List<TeacherStudentResponse> summarize(Collection<String> studentIds, List<ClassEntity> classes) {
         if (studentIds.isEmpty()) {
             return List.of();
         }
+        TeacherScope scope = TeacherScope.of(classes);
         Map<String, Long> projectCounts = projectRepository.findByOwnerIdIn(studentIds).stream()
+                .filter(p -> scope.canSee(p.getOwnerId(), p.getClassId()))
                 .collect(Collectors.groupingBy(Project::getOwnerId, Collectors.counting()));
         Map<String, List<LeetCodeEntry>> entries = leetCodeRepository.findByStudentIdIn(studentIds).stream()
+                .filter(e -> scope.canSee(e.getStudentId(), e.getClassId()))
                 .collect(Collectors.groupingBy(LeetCodeEntry::getStudentId));
 
         return userRepository.findAllById(studentIds).stream()

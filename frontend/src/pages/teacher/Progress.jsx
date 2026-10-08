@@ -40,7 +40,7 @@ function ProjectsTab() {
       ) : (
         <div className="card-grid">
           {filtered.map((p) => (
-            <ProjectCard key={p.id} project={p} showOwner />
+            <ProjectCard key={p.id} project={p} showOwner classLabel={p.className ?? null} />
           ))}
         </div>
       )}
@@ -86,7 +86,7 @@ function LeetCodeTab() {
       }
       padded={false}
     >
-      {filtered.length === 0 ? <EmptyState icon="search" title="No matching entries" /> : <LeetCodeTable entries={filtered} showStudent />}
+      {filtered.length === 0 ? <EmptyState icon="search" title="No matching entries" /> : <LeetCodeTable entries={filtered} showStudent classLabel={(e) => e.className} />}
     </Card>
   );
 }

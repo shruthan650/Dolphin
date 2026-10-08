@@ -146,6 +146,7 @@ export default function Teachers() {
         title="Delete teacher?"
         message={`${deleting?.name} will be permanently deleted along with their ${deleting?.classCount ?? 0} class(es). Students in those classes are unenrolled but keep their accounts, projects and LeetCode entries. This cannot be undone.`}
         confirmLabel="Delete teacher"
+        requireText="DELETE"
         loading={saving}
         onConfirm={deleteTeacher}
         onCancel={() => setDeleting(null)}

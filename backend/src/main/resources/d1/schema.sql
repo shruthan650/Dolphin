@@ -1,5 +1,7 @@
 -- Dolphin schema for Cloudflare D1 (SQLite). Applied automatically at startup when DOLPHIN_STORAGE=d1;
--- every statement is idempotent. Timestamps are fixed-width UTC ISO-8601 text so they sort correctly.
+-- every statement is idempotent. Columns added after the first release are also added to existing databases by
+-- D1StorageConfig (see MIGRATIONS there), which creates the indexes that depend on them.
+-- Timestamps are fixed-width UTC ISO-8601 text so they sort correctly.
 
 CREATE TABLE IF NOT EXISTS users (
     id            TEXT PRIMARY KEY,
@@ -11,6 +13,9 @@ CREATE TABLE IF NOT EXISTS users (
     github_url    TEXT,
     leetcode_url  TEXT,
     active        INTEGER NOT NULL,
+    failed_login_attempts INTEGER NOT NULL DEFAULT 0,  -- consecutive wrong passwords since the last success
+    locked_until  TEXT,                               -- login rejected until this instant (NULL = not locked)
+    token_version INTEGER NOT NULL DEFAULT 0,         -- bumped on password/email change to revoke older JWTs
     created_at    TEXT,
     updated_at    TEXT
 );
@@ -41,6 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_class_students_student ON class_students (student
 CREATE TABLE IF NOT EXISTS projects (
     id           TEXT PRIMARY KEY,
     owner_id     TEXT NOT NULL,
+    class_id     TEXT,  -- the class this project belongs to (NULL = legacy or class deleted)
     title        TEXT NOT NULL,
     description  TEXT,
     github_url   TEXT,
@@ -54,6 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects (owner_id);
 CREATE TABLE IF NOT EXISTS leetcode_entries (
     id           TEXT PRIMARY KEY,
     student_id   TEXT NOT NULL,
+    class_id     TEXT,  -- the class this entry belongs to (NULL = legacy or class deleted)
     problem_name TEXT NOT NULL,
     problem_url  TEXT,
     difficulty   TEXT NOT NULL,

@@ -32,8 +32,10 @@ class DeletionIntegrationTest extends IntegrationTestSupport {
         mvc.perform(auth(get("/api/student/classes"), student))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+        // The project of the deleted class is kept but no longer points at it
         mvc.perform(auth(get("/api/projects/my"), student))
-                .andExpect(jsonPath("$", hasSize(1)));
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].classId").doesNotExist());
     }
 
     @Test
@@ -48,7 +50,7 @@ class DeletionIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void teacherDeletesStudentWithAllTheirDataAndEnrolments() throws Exception {
+    void adminDeletesStudentWithAllTheirDataAndEnrolments() throws Exception {
         Account teacher = createTeacher();
         Account otherTeacher = createTeacher();
         JsonNode cls = createClass(teacher);
@@ -56,10 +58,10 @@ class DeletionIntegrationTest extends IntegrationTestSupport {
         Account student = registerStudent();
         joinClass(student, cls.get("classCode").asText());
         joinClass(student, otherCls.get("classCode").asText());
-        createProject(student, "Deleted project");
-        createLeetCode(student, "Two Sum");
+        createProject(student, "Deleted project", cls.get("id").asText());
+        createLeetCode(student, "Two Sum", otherCls.get("id").asText());
 
-        mvc.perform(auth(delete("/api/teacher/students/" + student.id()), teacher))
+        mvc.perform(auth(delete("/api/admin/students/" + student.id()), admin()))
                 .andExpect(status().isNoContent());
 
         mvc.perform(withJson(post("/api/auth/login"), Map.of("email", student.email(), "password", PASSWORD)))
@@ -68,23 +70,33 @@ class DeletionIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized());
         mvc.perform(auth(get("/api/teacher/students"), teacher))
                 .andExpect(jsonPath("$", hasSize(0)));
-        // Also removed from the other teacher's class, with no projects or LeetCode entries left behind
+        // Removed from every class, with no projects or LeetCode entries left behind
         mvc.perform(auth(get("/api/classes/" + otherCls.get("id").asText()), otherTeacher))
                 .andExpect(jsonPath("$.students", hasSize(0)));
-        mvc.perform(auth(get("/api/teacher/projects"), otherTeacher))
+        mvc.perform(auth(get("/api/teacher/projects"), teacher))
                 .andExpect(jsonPath("$", hasSize(0)));
         mvc.perform(auth(get("/api/teacher/leetcode"), otherTeacher))
                 .andExpect(jsonPath("$", hasSize(0)));
     }
 
     @Test
-    void teacherCannotDeleteStudentsOutsideTheirClasses() throws Exception {
+    void onlyAdminsCanDeleteStudentAccounts() throws Exception {
         Account teacher = createTeacher();
+        JsonNode cls = createClass(teacher);
         Account student = registerStudent();
+        joinClass(student, cls.get("classCode").asText());
+
+        // The former teacher endpoint for deleting a whole account no longer exists
         mvc.perform(auth(delete("/api/teacher/students/" + student.id()), teacher))
+                .andExpect(status().isMethodNotAllowed());
+        mvc.perform(auth(delete("/api/admin/students/" + student.id()), teacher))
                 .andExpect(status().isForbidden());
-        mvc.perform(auth(delete("/api/teacher/students/" + student.id()), registerStudent()))
+        mvc.perform(auth(delete("/api/admin/students/" + student.id()), registerStudent()))
                 .andExpect(status().isForbidden());
+        mvc.perform(auth(delete("/api/admin/students/" + teacher.id()), admin()))
+                .andExpect(status().isBadRequest());
+        mvc.perform(auth(delete("/api/admin/students/does-not-exist"), admin()))
+                .andExpect(status().isNotFound());
         mvc.perform(withJson(post("/api/auth/login"), Map.of("email", student.email(), "password", PASSWORD)))
                 .andExpect(status().isOk());
     }

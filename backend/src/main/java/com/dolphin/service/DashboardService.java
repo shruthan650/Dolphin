@@ -81,8 +81,13 @@ public class DashboardService {
     public TeacherDashboardResponse teacherDashboard(String teacherId) {
         List<ClassEntity> classes = classRepository.findByTeacherId(teacherId);
         Set<String> studentIds = TeacherService.studentIdsOf(classes);
-        List<Project> projects = projectRepository.findByOwnerIdIn(studentIds);
-        List<LeetCodeEntry> entries = leetCodeRepository.findByStudentIdIn(studentIds);
+        TeacherScope scope = TeacherScope.of(classes);
+        List<Project> projects = projectRepository.findByOwnerIdIn(studentIds).stream()
+                .filter(p -> scope.canSee(p.getOwnerId(), p.getClassId()))
+                .toList();
+        List<LeetCodeEntry> entries = leetCodeRepository.findByStudentIdIn(studentIds).stream()
+                .filter(e -> scope.canSee(e.getStudentId(), e.getClassId()))
+                .toList();
         long solved = entries.stream().filter(e -> e.getStatus() == LeetCodeStatus.SOLVED).count();
         return new TeacherDashboardResponse(classes.size(), studentIds.size(), projects.size(), entries.size(),
                 solved, recentActivity(projects, entries, progressAssembler.namesById(studentIds)));

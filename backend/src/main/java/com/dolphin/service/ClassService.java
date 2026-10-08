@@ -11,6 +11,7 @@ import com.dolphin.exception.ForbiddenException;
 import com.dolphin.exception.ResourceNotFoundException;
 import com.dolphin.mapper.ClassMapper;
 import com.dolphin.model.ClassEntity;
+import com.dolphin.repository.ClassDataRepository;
 import com.dolphin.repository.ClassRepository;
 import com.dolphin.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -23,13 +24,16 @@ import java.util.Map;
 public class ClassService {
 
     private final ClassRepository classRepository;
+    private final ClassDataRepository classDataRepository;
     private final UserRepository userRepository;
     private final ClassCodeGenerator classCodeGenerator;
     private final StudentProgressAssembler progressAssembler;
 
-    public ClassService(ClassRepository classRepository, UserRepository userRepository,
-                        ClassCodeGenerator classCodeGenerator, StudentProgressAssembler progressAssembler) {
+    public ClassService(ClassRepository classRepository, ClassDataRepository classDataRepository,
+                        UserRepository userRepository, ClassCodeGenerator classCodeGenerator,
+                        StudentProgressAssembler progressAssembler) {
         this.classRepository = classRepository;
+        this.classDataRepository = classDataRepository;
         this.userRepository = userRepository;
         this.classCodeGenerator = classCodeGenerator;
         this.progressAssembler = progressAssembler;
@@ -62,18 +66,42 @@ public class ClassService {
         return ClassMapper.toResponse(classRepository.save(entity), teacherName(teacherId));
     }
 
-    public void deleteClass(String teacherId, String classId) {
+    /** Students are unenrolled; their projects and LeetCode entries of this class are kept as unassigned. */
+    public synchronized void deleteClass(String teacherId, String classId) {
         requireOwnedClass(teacherId, classId);
-        classRepository.deleteById(classId);
+        classDataRepository.deleteClass(classId);
     }
 
+    /**
+     * Removes a student from one of the teacher's classes, deleting the student's data of that class only. Their
+     * other classes, data of other classes and account are untouched.
+     */
     public synchronized void removeStudent(String teacherId, String classId, String studentId) {
         ClassEntity entity = requireOwnedClass(teacherId, classId);
-        if (!entity.getStudentIds().remove(studentId)) {
+        if (!entity.getStudentIds().contains(studentId)) {
             throw new ResourceNotFoundException("Student is not enrolled in this class");
         }
-        entity.setUpdatedAt(Instant.now());
-        classRepository.save(entity);
+        classDataRepository.removeStudentFromClass(classId, studentId);
+    }
+
+    /** A student leaves one of their classes; like removal, only their data of that class is deleted. */
+    public synchronized void leaveClass(String studentId, String classId) {
+        ClassEntity entity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+        if (!entity.getStudentIds().contains(studentId)) {
+            throw new ResourceNotFoundException("You are not enrolled in this class");
+        }
+        classDataRepository.removeStudentFromClass(classId, studentId);
+    }
+
+    /** 403 unless the student is enrolled in the class (used before attaching a project or entry to it). */
+    void requireEnrolled(String studentId, String classId) {
+        boolean enrolled = classRepository.findById(classId)
+                .map(c -> c.getStudentIds().contains(studentId))
+                .orElse(false);
+        if (!enrolled) {
+            throw new ForbiddenException("You can only add work to a class you have joined");
+        }
     }
 
     /** Unenrols a student from every class (used when the student's account is deleted). */
@@ -87,7 +115,7 @@ public class ClassService {
 
     /** Deletes every class a teacher owns (used when the teacher's account is deleted). */
     synchronized void deleteClassesOfTeacher(String teacherId) {
-        classRepository.findByTeacherId(teacherId).forEach(c -> classRepository.deleteById(c.getId()));
+        classRepository.findByTeacherId(teacherId).forEach(c -> classDataRepository.deleteClass(c.getId()));
     }
 
     /** Synchronized so two concurrent joins cannot overwrite each other's enrolment. */

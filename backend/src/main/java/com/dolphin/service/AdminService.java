@@ -60,7 +60,10 @@ public class AdminService {
         return UserMapper.toAdminResponse(saved, classCount(saved));
     }
 
-    /** Permanently deletes a teacher and their classes; enrolled students keep their accounts. */
+    /**
+     * Permanently deletes a teacher and their classes; enrolled students keep their accounts and their projects and
+     * LeetCode entries of those classes (which become unassigned).
+     */
     public void deleteTeacher(String teacherId) {
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
@@ -68,6 +71,16 @@ public class AdminService {
             throw new BadRequestException("Only teacher accounts can be deleted here");
         }
         accountDeletionService.deleteTeacher(teacherId);
+    }
+
+    /** Permanently deletes a student with all their data and every class enrolment. */
+    public void deleteStudent(String studentId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        if (student.getRole() != Role.STUDENT) {
+            throw new BadRequestException("Only student accounts can be deleted here");
+        }
+        accountDeletionService.deleteStudent(studentId);
     }
 
     List<AdminUserResponse> toAdminResponses(List<User> users) {

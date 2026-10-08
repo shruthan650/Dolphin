@@ -6,6 +6,7 @@ import com.dolphin.repository.UserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -84,6 +85,10 @@ public class D1UserRepository implements UserRepository {
         return result;
     }
 
+    /**
+     * The lockout columns are deliberately left out: they change only through the atomic methods below, so a
+     * concurrent profile save can never reset a failed-attempt count.
+     */
     @Override
     public User save(User user) {
         if (user.getId() == null) {
@@ -91,18 +96,48 @@ public class D1UserRepository implements UserRepository {
         }
         d1.execute("""
                 INSERT INTO users (id, name, email, email_key, password_hash, role, github_url, leetcode_url,
-                                   active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   active, token_version, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
                     name = excluded.name, email = excluded.email, email_key = excluded.email_key,
                     password_hash = excluded.password_hash, role = excluded.role, github_url = excluded.github_url,
                     leetcode_url = excluded.leetcode_url, active = excluded.active,
+                    token_version = excluded.token_version,
                     created_at = excluded.created_at, updated_at = excluded.updated_at
                 """,
                 user.getId(), user.getName(), user.getEmail(), normalize(user.getEmail()), user.getPasswordHash(),
-                user.getRole(), user.getGithubUrl(), user.getLeetCodeUrl(), user.isActive(), user.getCreatedAt(),
-                user.getUpdatedAt());
+                user.getRole(), user.getGithubUrl(), user.getLeetCodeUrl(), user.isActive(), user.getTokenVersion(),
+                user.getCreatedAt(), user.getUpdatedAt());
         return user.copy();
+    }
+
+    /**
+     * One statement, so concurrent wrong passwords are counted exactly; SET expressions see the old row values.
+     * The limit is inlined because bound parameters arrive as text, which SQLite would not compare numerically here.
+     */
+    @Override
+    public Optional<LoginAttemptState> recordFailedLogin(String userId, Instant now, int maxAttempts,
+                                                         Instant lockUntil) {
+        String newCount = "(CASE WHEN locked_until IS NOT NULL THEN 1 ELSE failed_login_attempts + 1 END)";
+        return d1.query("""
+                UPDATE users SET
+                    failed_login_attempts = %1$s,
+                    locked_until = CASE WHEN %1$s >= %2$d THEN ? ELSE NULL END
+                WHERE id = ? AND (locked_until IS NULL OR locked_until <= ?)
+                RETURNING failed_login_attempts, locked_until
+                """.formatted(newCount, maxAttempts), lockUntil, userId, now).stream()
+                .findFirst()
+                .map(row -> new LoginAttemptState((int) number(row, "failed_login_attempts"),
+                        instant(row, "locked_until")));
+    }
+
+    @Override
+    public boolean resetFailedLogins(String userId, Instant now) {
+        return !d1.query("""
+                UPDATE users SET failed_login_attempts = 0, locked_until = NULL
+                WHERE id = ? AND (locked_until IS NULL OR locked_until <= ?)
+                RETURNING id
+                """, userId, now).isEmpty();
     }
 
     @Override
@@ -130,6 +165,9 @@ public class D1UserRepository implements UserRepository {
         user.setGithubUrl(string(row, "github_url"));
         user.setLeetCodeUrl(string(row, "leetcode_url"));
         user.setActive(bool(row, "active"));
+        user.setFailedLoginAttempts((int) number(row, "failed_login_attempts"));
+        user.setLockedUntil(instant(row, "locked_until"));
+        user.setTokenVersion((int) number(row, "token_version"));
         user.setCreatedAt(instant(row, "created_at"));
         user.setUpdatedAt(instant(row, "updated_at"));
         return user;

@@ -6,7 +6,8 @@ const NAV = {
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { to: '/admin/teachers', label: 'Teachers', icon: 'teacher' },
     { to: '/admin/students', label: 'Students', icon: 'users' },
-    { to: '/admin/users', label: 'Users', icon: 'user' },
+    { to: '/admin/users', label: 'Users', icon: 'users' },
+    { to: '/admin/profile', label: 'Profile', icon: 'user' },
   ],
   TEACHER: [
     { to: '/teacher/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -14,6 +15,7 @@ const NAV = {
     { to: '/teacher/students', label: 'Students', icon: 'users' },
     { to: '/teacher/progress?tab=projects', label: 'Projects', icon: 'folder', match: 'projects' },
     { to: '/teacher/progress?tab=leetcode', label: 'LeetCode', icon: 'code', match: 'leetcode' },
+    { to: '/teacher/profile', label: 'Profile', icon: 'user' },
   ],
   STUDENT: [
     { to: '/student/dashboard', label: 'Dashboard', icon: 'dashboard' },

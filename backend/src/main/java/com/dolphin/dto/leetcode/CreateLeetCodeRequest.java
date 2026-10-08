@@ -10,7 +10,10 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-/** studentId is deliberately absent: the owner always comes from the authenticated student. */
+/**
+ * studentId is deliberately absent: the owner always comes from the authenticated student. classId must be a class
+ * the student is enrolled in.
+ */
 public record CreateLeetCodeRequest(
         @NotBlank(message = "Problem name is required")
         @Size(max = 150, message = "Problem name must be at most 150 characters")
@@ -30,6 +33,9 @@ public record CreateLeetCodeRequest(
         String topic,
 
         @PastOrPresent(message = "Solved date cannot be in the future")
-        LocalDate solvedAt
+        LocalDate solvedAt,
+
+        @NotBlank(message = "Class is required")
+        String classId
 ) {
 }

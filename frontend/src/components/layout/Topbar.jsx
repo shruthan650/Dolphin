@@ -1,4 +1,5 @@
 import Icon from '../common/Icon';
+import ThemeToggle from '../common/ThemeToggle';
 import { initials } from '../../utils/format';
 
 export default function Topbar({ user, onMenu }) {
@@ -8,6 +9,7 @@ export default function Topbar({ user, onMenu }) {
         <Icon name="menu" size={20} />
       </button>
       <div className="topbar-spacer" />
+      <ThemeToggle />
       <div className="topbar-user">
         <div className="topbar-user-text">
           <span className="topbar-name">{user?.name}</span>

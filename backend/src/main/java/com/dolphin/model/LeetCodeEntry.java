@@ -7,6 +7,8 @@ public class LeetCodeEntry {
 
     private String id;
     private String studentId;
+    /** The class this entry belongs to; null for legacy entries or when the class was deleted. */
+    private String classId;
     private String problemName;
     private String problemUrl;
     private Difficulty difficulty;
@@ -20,6 +22,7 @@ public class LeetCodeEntry {
         LeetCodeEntry copy = new LeetCodeEntry();
         copy.id = id;
         copy.studentId = studentId;
+        copy.classId = classId;
         copy.problemName = problemName;
         copy.problemUrl = problemUrl;
         copy.difficulty = difficulty;
@@ -36,6 +39,9 @@ public class LeetCodeEntry {
 
     public String getStudentId() { return studentId; }
     public void setStudentId(String studentId) { this.studentId = studentId; }
+
+    public String getClassId() { return classId; }
+    public void setClassId(String classId) { this.classId = classId; }
 
     public String getProblemName() { return problemName; }
     public void setProblemName(String problemName) { this.problemName = problemName; }

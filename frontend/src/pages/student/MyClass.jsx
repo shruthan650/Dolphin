@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import ClassCard from '../../components/cards/ClassCard';
 import Card from '../../components/common/Card';
 import EmptyState from '../../components/common/EmptyState';
@@ -5,13 +6,21 @@ import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
 import JoinClassForm from '../../components/forms/JoinClassForm';
+import LeaveClassDialog from '../../components/forms/LeaveClassDialog';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { studentService } from '../../services/studentService';
 
 export default function MyClass() {
-  const { data, loading, error, reload } = useApi(studentService.classes);
+  const { data, setData, loading, error, reload } = useApi(studentService.classes);
+  const [leaving, setLeaving] = useState(null);
   const toast = useToast();
+
+  const onLeft = (cls) => {
+    setLeaving(null);
+    setData((current) => current.filter((c) => c.id !== cls.id));
+    reload();
+  };
 
   const onJoined = (result) => {
     toast.success(result.message);
@@ -36,11 +45,13 @@ export default function MyClass() {
         ) : (
           <div className="card-grid">
             {data.map((cls) => (
-              <ClassCard key={cls.id} cls={cls} />
+              <ClassCard key={cls.id} cls={cls} onLeave={setLeaving} />
             ))}
           </div>
         )}
       </Card>
+
+      <LeaveClassDialog cls={leaving} onCancel={() => setLeaving(null)} onLeft={onLeft} />
     </>
   );
 }

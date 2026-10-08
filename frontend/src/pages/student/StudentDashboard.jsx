@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdviceList from '../../components/cards/AdviceList';
 import ClassCard from '../../components/cards/ClassCard';
@@ -10,6 +11,7 @@ import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
 import JoinClassForm from '../../components/forms/JoinClassForm';
+import LeaveClassDialog from '../../components/forms/LeaveClassDialog';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
@@ -21,7 +23,15 @@ export default function StudentDashboard() {
   const { user } = useAuth();
   const { data, loading, error, reload } = useApi(studentService.dashboard);
   const advice = useApi(adviceService.mine);
+  const [leaving, setLeaving] = useState(null);
   const toast = useToast();
+
+  // Leaving deletes that class's projects, LeetCode entries and advice, so every dashboard figure is refetched.
+  const onLeft = () => {
+    setLeaving(null);
+    reload();
+    advice.reload();
+  };
 
   const onJoined = (result) => {
     toast.success(result.message);
@@ -141,13 +151,15 @@ export default function StudentDashboard() {
             <Card title="My classes" actions={<Button variant="ghost" size="sm" to="/student/class">Manage</Button>}>
               <div className="card-grid">
                 {data.joinedClasses.map((cls) => (
-                  <ClassCard key={cls.id} cls={cls} />
+                  <ClassCard key={cls.id} cls={cls} onLeave={setLeaving} />
                 ))}
               </div>
             </Card>
           )}
         </>
       )}
+
+      <LeaveClassDialog cls={leaving} onCancel={() => setLeaving(null)} onLeft={onLeft} />
     </>
   );
 }

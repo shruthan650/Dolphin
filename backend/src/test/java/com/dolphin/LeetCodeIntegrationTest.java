@@ -25,7 +25,7 @@ class LeetCodeIntegrationTest extends IntegrationTestSupport {
         mvc.perform(auth(withJson(post("/api/leetcode"), Map.of(
                         "problemName", "Two Sum", "problemUrl", "https://leetcode.com/problems/two-sum/",
                         "difficulty", "EASY", "status", "SOLVED", "topic", "Arrays",
-                        "studentId", "someone-else")), student))
+                        "studentId", "someone-else", "classId", classIdFor(student))), student))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.studentId").value(student.id()))
                 .andExpect(jsonPath("$.solvedAt").value(LocalDate.now().toString()));

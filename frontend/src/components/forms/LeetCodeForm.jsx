@@ -3,20 +3,23 @@ import Input from '../common/Input';
 import { todayIso } from '../../utils/format';
 import { validateOptionalUrl } from '../../utils/validation';
 import FormAlert from './FormAlert';
+import ClassSelect from './ClassSelect';
 import { useForm } from './useForm';
 
-const EMPTY = { problemName: '', problemUrl: '', difficulty: 'EASY', status: 'SOLVED', topic: '', solvedAt: '' };
+const EMPTY = { problemName: '', problemUrl: '', difficulty: 'EASY', status: 'SOLVED', topic: '', solvedAt: '', classId: '' };
 
 function validate(values) {
   const errors = {};
   if (!values.problemName.trim()) errors.problemName = 'Problem name is required';
+  if (!values.classId) errors.classId = 'Choose the class this problem belongs to';
   const url = validateOptionalUrl(values.problemUrl, 'Problem URL');
   if (url) errors.problemUrl = url;
   if (values.solvedAt && values.solvedAt > todayIso()) errors.solvedAt = 'Solved date cannot be in the future';
   return errors;
 }
 
-export default function LeetCodeForm({ initialValues, submitLabel = 'Add problem', onSubmit, onCancel }) {
+/** classes are the student's joined classes; a single class is preselected. */
+export default function LeetCodeForm({ initialValues, classes = [], submitLabel = 'Add problem', onSubmit, onCancel }) {
   const start = initialValues
     ? {
         problemName: initialValues.problemName ?? '',
@@ -25,8 +28,9 @@ export default function LeetCodeForm({ initialValues, submitLabel = 'Add problem
         status: initialValues.status ?? 'SOLVED',
         topic: initialValues.topic ?? '',
         solvedAt: initialValues.solvedAt ?? '',
+        classId: initialValues.classId ?? '',
       }
-    : EMPTY;
+    : { ...EMPTY, classId: classes.length === 1 ? classes[0].id : '' };
   const { values, bind, handleSubmit, submitting, formError } = useForm(start, validate, (v) =>
     onSubmit({
       problemName: v.problemName.trim(),
@@ -35,12 +39,14 @@ export default function LeetCodeForm({ initialValues, submitLabel = 'Add problem
       status: v.status,
       topic: v.topic.trim(),
       solvedAt: v.status === 'SOLVED' && v.solvedAt ? v.solvedAt : null,
+      classId: v.classId,
     }),
   );
 
   return (
     <form onSubmit={handleSubmit} noValidate className="form">
       <FormAlert message={formError} />
+      <ClassSelect classes={classes} {...bind('classId')} />
       <Input label="Problem name" placeholder="Two Sum" required maxLength={150} {...bind('problemName')} />
       <Input label="Problem URL" type="url" placeholder="https://leetcode.com/problems/two-sum/" {...bind('problemUrl')} />
       <div className="form-row">
