@@ -2,19 +2,21 @@ package com.dolphin.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-@Component
-public class LogPathInitializer {
+public final class LogPathInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(LogPathInitializer.class);
 
-    public LogPathInitializer(@Value("${LOG_PATH:./logs}") String logPath) {
+    private LogPathInitializer() {
+        // Utility class
+    }
+
+    public static void ensureExists() {
+        String logPath = System.getenv().getOrDefault("LOG_PATH", "./logs");
         try {
             Path logsDirectory = Path.of(logPath);
             Files.createDirectories(logsDirectory);

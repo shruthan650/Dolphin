@@ -136,6 +136,28 @@ cd backend
 ./mvnw test        # Windows: .\mvnw.cmd test
 ```
 
+### Logging and request tracing
+
+The backend writes structured logs to `backend/logs/dolphin.log` and rotates them daily into `backend/logs/archive`.
+Each log line includes a request ID and logger context so you can trace a single user/session request across the app.
+The app also creates the log directory automatically before Logback starts, which prevents startup failures on clean environments or Render-like containers where the `./logs` folder does not exist yet.
+
+Optional environment variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `LOG_PATH` | `./logs` | Base directory for application logs |
+| `LOG_LEVEL` | `INFO` | Global application log level |
+
+Example local paths:
+
+```text
+backend/logs/dolphin.log
+backend/logs/archive/dolphin.2026-10-10.log.gz
+```
+
+> Render’s filesystem is ephemeral, so logs are best treated as runtime diagnostics rather than long-term storage. For persistent log retention, attach a volume or ship logs to an external collector.
+
 ### 2. Frontend
 
 ```bash
