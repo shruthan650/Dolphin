@@ -16,6 +16,8 @@ import com.dolphin.model.User;
 import com.dolphin.repository.UserRepository;
 import com.dolphin.repository.UserRepository.LoginAttemptState;
 import com.dolphin.security.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +31,7 @@ import java.util.function.Consumer;
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final String INVALID_CREDENTIALS = "Invalid email or password";
     private static final String LOCKED = "Too many login attempts. Please try again later.";
     /** Consecutive wrong passwords that lock an account... */
@@ -44,7 +47,7 @@ public class AuthService {
     private final String dummyHash;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
-                       Clock clock) {
+            Clock clock) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -53,38 +56,48 @@ public class AuthService {
     }
 
     /**
-     * Email + password login with a persisted lockout: {@value #MAX_FAILED_ATTEMPTS} consecutive wrong passwords lock
-     * the account for {@link #LOCKOUT_DURATION}, during which even the correct password is rejected. The counter and
-     * lock live in the database and change through atomic updates, so concurrent requests or several backend
+     * Email + password login with a persisted lockout:
+     * {@value #MAX_FAILED_ATTEMPTS} consecutive wrong passwords lock
+     * the account for {@link #LOCKOUT_DURATION}, during which even the correct
+     * password is rejected. The counter and
+     * lock live in the database and change through atomic updates, so concurrent
+     * requests or several backend
      * instances cannot get extra attempts; only a successful login resets them.
      */
     public LoginResponse login(LoginRequest request) {
         Optional<User> found = userRepository.findByEmail(request.email());
         if (found.isEmpty()) {
             passwordEncoder.matches(request.password(), dummyHash);
+            log.warn("Authentication failed for an unregistered email");
             throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
         User user = found.get();
         Instant now = clock.instant();
         if (user.isLockedAt(now)) {
             passwordEncoder.matches(request.password(), dummyHash);
+            log.warn("Authentication rejected for locked account {}", user.getId());
             throw new TooManyAttemptsException(LOCKED);
         }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             Optional<LoginAttemptState> state = userRepository.recordFailedLogin(user.getId(), now,
                     MAX_FAILED_ATTEMPTS, now.plus(LOCKOUT_DURATION));
             if (state.isEmpty() || state.get().lockedUntil() != null) {
+                log.warn("Account {} locked after repeated failed login attempts", user.getId());
                 throw new TooManyAttemptsException(LOCKED);
             }
+            log.warn("Authentication failed for user {}", user.getId());
             throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
         // Fails if a concurrent request locked the account after it was read above.
         if (!userRepository.resetFailedLogins(user.getId(), now)) {
+            log.warn("Login for user {} was rejected due to a concurrent lockout", user.getId());
             throw new TooManyAttemptsException(LOCKED);
         }
         if (!user.isActive()) {
+            log.warn("Authentication denied for inactive account {}", user.getId());
             throw new UnauthorizedException("This account has been deactivated. Contact an administrator.");
         }
+        log.info("User {} authenticated successfully", user.getId());
         return toLoginResponse(user);
     }
 
@@ -92,6 +105,7 @@ public class AuthService {
     public LoginResponse registerStudent(RegisterStudentRequest request) {
         User student = createUser(request.name(), request.email(), request.password(), request.confirmPassword(),
                 Role.STUDENT, user -> applyProfileLinks(user, request.githubUrl(), request.leetCodeUrl()));
+        log.info("Student account created: {}", student.getId());
         return toLoginResponse(student);
     }
 
@@ -101,7 +115,9 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         applyProfileLinks(user, request.githubUrl(), request.leetCodeUrl());
         user.setUpdatedAt(Instant.now());
-        return UserMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        log.info("Updated profile links for user {}", userId);
+        return UserMapper.toResponse(saved);
     }
 
     public UserResponse currentUser(String userId) {
@@ -112,11 +128,12 @@ public class AuthService {
 
     /** Shared by student registration and admin teacher creation. */
     User createUser(String name, String email, String password, String confirmPassword, Role role) {
-        return createUser(name, email, password, confirmPassword, role, user -> { });
+        return createUser(name, email, password, confirmPassword, role, user -> {
+        });
     }
 
     private User createUser(String name, String email, String password, String confirmPassword, Role role,
-                            Consumer<User> customizer) {
+            Consumer<User> customizer) {
         if (!password.equals(confirmPassword)) {
             throw new BadRequestException("Passwords do not match");
         }
@@ -134,7 +151,9 @@ public class AuthService {
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
         customizer.accept(user);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        log.info("Created {} account {}", role, saved.getId());
+        return saved;
     }
 
     LoginResponse toLoginResponse(User user) {

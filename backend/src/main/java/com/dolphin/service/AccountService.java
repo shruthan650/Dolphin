@@ -14,6 +14,8 @@ import com.dolphin.mapper.UserMapper;
 import com.dolphin.model.Role;
 import com.dolphin.model.User;
 import com.dolphin.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,12 +23,15 @@ import java.time.Instant;
 import java.util.Locale;
 
 /**
- * Self-service account management. Every method acts on the authenticated user's own id (taken from the JWT by the
- * controller), so one user can never change another user's account through these operations.
+ * Self-service account management. Every method acts on the authenticated
+ * user's own id (taken from the JWT by the
+ * controller), so one user can never change another user's account through
+ * these operations.
  */
 @Service
 public class AccountService {
 
+    private static final Logger log = LoggerFactory.getLogger(AccountService.class);
     private static final String DELETE_CONFIRMATION = "DELETE";
 
     private final UserRepository userRepository;
@@ -35,7 +40,7 @@ public class AccountService {
     private final AccountDeletionService accountDeletionService;
 
     public AccountService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthService authService,
-                          AccountDeletionService accountDeletionService) {
+            AccountDeletionService accountDeletionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authService = authService;
@@ -46,7 +51,10 @@ public class AccountService {
         return UserMapper.toResponse(require(userId));
     }
 
-    /** Name for everyone; GitHub/LeetCode links are required for students and optional for other roles. */
+    /**
+     * Name for everyone; GitHub/LeetCode links are required for students and
+     * optional for other roles.
+     */
     public UserResponse updateProfile(String userId, UpdateProfileRequest request) {
         User user = require(userId);
         boolean blankGithub = request.githubUrl() == null || request.githubUrl().isBlank();
@@ -59,11 +67,14 @@ public class AccountService {
         user.setGithubUrl(blankGithub ? null : AuthService.normalizeUrl(request.githubUrl()));
         user.setLeetCodeUrl(blankLeetCode ? null : AuthService.normalizeUrl(request.leetCodeUrl()));
         user.setUpdatedAt(Instant.now());
-        return UserMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        log.info("User {} updated profile details", userId);
+        return UserMapper.toResponse(saved);
     }
 
     /**
-     * Changes the login email after re-checking the password. Older tokens are revoked (they carry the old email)
+     * Changes the login email after re-checking the password. Older tokens are
+     * revoked (they carry the old email)
      * and a fresh token is returned so the current session continues.
      */
     public LoginResponse changeEmail(String userId, ChangeEmailRequest request) {
@@ -77,10 +88,14 @@ public class AccountService {
             throw new ConflictException("An account with this email already exists");
         }
         user.setEmail(newEmail);
+        log.info("User {} changed email address", userId);
         return saveWithNewTokenVersion(user);
     }
 
-    /** Re-hashes with the application's PasswordEncoder (BCrypt) and revokes every other session. */
+    /**
+     * Re-hashes with the application's PasswordEncoder (BCrypt) and revokes every
+     * other session.
+     */
     public LoginResponse changePassword(String userId, ChangePasswordRequest request) {
         User user = require(userId);
         verifyPassword(user, request.currentPassword());
@@ -91,10 +106,14 @@ public class AccountService {
             throw new BadRequestException("The new password must be different from the current password");
         }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        log.info("User {} changed password and revoked older sessions", userId);
         return saveWithNewTokenVersion(user);
     }
 
-    /** Students and teachers may delete their own account; admins may not (the system needs its administrator). */
+    /**
+     * Students and teachers may delete their own account; admins may not (the
+     * system needs its administrator).
+     */
     public void deleteOwnAccount(String userId, DeleteAccountRequest request) {
         User user = require(userId);
         if (user.getRole() == Role.ADMIN) {
@@ -109,6 +128,7 @@ public class AccountService {
         } else {
             accountDeletionService.deleteStudent(userId);
         }
+        log.info("User {} deleted their own account", userId);
     }
 
     private LoginResponse saveWithNewTokenVersion(User user) {
@@ -117,7 +137,10 @@ public class AccountService {
         return authService.toLoginResponse(userRepository.save(user));
     }
 
-    /** 400 rather than 401, so a typo does not look like an expired session to the frontend. */
+    /**
+     * 400 rather than 401, so a typo does not look like an expired session to the
+     * frontend.
+     */
     private void verifyPassword(User user, String password) {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BadRequestException("Current password is incorrect");

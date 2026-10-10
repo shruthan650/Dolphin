@@ -12,6 +12,8 @@ import com.dolphin.repository.AdviceRepository;
 import com.dolphin.repository.ClassRepository;
 import com.dolphin.repository.LeetCodeRepository;
 import com.dolphin.repository.ProjectRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,12 +24,15 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Teacher advice on a student's projects and LeetCode entries. A teacher may advise only students enrolled in one
- * of their classes and may delete only advice they wrote; students read the advice given to them.
+ * Teacher advice on a student's projects and LeetCode entries. A teacher may
+ * advise only students enrolled in one
+ * of their classes and may delete only advice they wrote; students read the
+ * advice given to them.
  */
 @Service
 public class AdviceService {
 
+    private static final Logger log = LoggerFactory.getLogger(AdviceService.class);
     private final AdviceRepository adviceRepository;
     private final ProjectRepository projectRepository;
     private final LeetCodeRepository leetCodeRepository;
@@ -35,8 +40,8 @@ public class AdviceService {
     private final StudentProgressAssembler progressAssembler;
 
     public AdviceService(AdviceRepository adviceRepository, ProjectRepository projectRepository,
-                         LeetCodeRepository leetCodeRepository, ClassRepository classRepository,
-                         StudentProgressAssembler progressAssembler) {
+            LeetCodeRepository leetCodeRepository, ClassRepository classRepository,
+            StudentProgressAssembler progressAssembler) {
         this.adviceRepository = adviceRepository;
         this.projectRepository = projectRepository;
         this.leetCodeRepository = leetCodeRepository;
@@ -75,6 +80,8 @@ public class AdviceService {
         advice.setCreatedAt(now);
         advice.setUpdatedAt(now);
         Advice saved = adviceRepository.save(advice);
+        log.info("Teacher {} added advice {} for student {} on {} {}", teacherId, saved.getId(), studentId,
+                request.targetType(), request.targetId());
         return toResponse(saved, title, progressAssembler.namesById(List.of(teacherId)).get(teacherId));
     }
 
@@ -85,14 +92,21 @@ public class AdviceService {
             throw new ForbiddenException("You can only delete advice you wrote");
         }
         adviceRepository.deleteById(adviceId);
+        log.info("Teacher {} deleted advice {}", teacherId, adviceId);
     }
 
-    /** All advice given to a student, newest first, with project/problem titles and teacher names. */
+    /**
+     * All advice given to a student, newest first, with project/problem titles and
+     * teacher names.
+     */
     public List<AdviceResponse> forStudent(String studentId) {
         return forStudent(studentId, null);
     }
 
-    /** Advice on the student's projects and entries that are visible through the given classes of a teacher. */
+    /**
+     * Advice on the student's projects and entries that are visible through the
+     * given classes of a teacher.
+     */
     List<AdviceResponse> forStudent(String studentId, TeacherScope scope) {
         Map<String, String> titles = new HashMap<>();
         projectRepository.findByOwnerId(studentId).stream()

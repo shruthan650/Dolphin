@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -26,16 +27,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApi(ApiException ex, HttpServletRequest request) {
+        log.warn("Handled {} {} -> {} ({})", request.getMethod(), request.getRequestURI(), ex.getStatus(),
+                ex.getMessage());
         return build(ex.getStatus(), ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(fe -> errors.putIfAbsent(fe.getField(), fe.getDefaultMessage()));
         ex.getBindingResult().getGlobalErrors()
                 .forEach(ge -> errors.putIfAbsent(ge.getObjectName(), ge.getDefaultMessage()));
+        log.warn("Validation failed for {} {}: {}", request.getMethod(), request.getRequestURI(), errors);
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request, errors);
     }
 
@@ -44,42 +49,54 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = new LinkedHashMap<>();
         ex.getConstraintViolations()
                 .forEach(v -> errors.putIfAbsent(v.getPropertyPath().toString(), v.getMessage()));
+        log.warn("Constraint validation failed for {} {}: {}", request.getMethod(), request.getRequestURI(), errors);
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request, errors);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
+        log.warn("Malformed request body for {} {}", request.getMethod(), request.getRequestURI());
         return build(HttpStatus.BAD_REQUEST, "Malformed request body or invalid value", request, null);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+        log.warn("Invalid request parameter for {} {}: {}={}", request.getMethod(), request.getRequestURI(),
+                ex.getName(), ex.getValue());
         return build(HttpStatus.BAD_REQUEST, "Invalid value for parameter '" + ex.getName() + "'", request, null);
     }
 
-    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    @ExceptionHandler({ AccessDeniedException.class, AuthorizationDeniedException.class })
     public ResponseEntity<ErrorResponse> handleAccessDenied(RuntimeException ex, HttpServletRequest request) {
+        log.warn("Access denied for {} {} (requestId={})", request.getMethod(), request.getRequestURI(),
+                MDC.get("requestId"));
         return build(HttpStatus.FORBIDDEN, "You do not have permission to perform this action", request, null);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+        log.warn("Unknown endpoint requested: {} {}", request.getMethod(), request.getRequestURI());
         return build(HttpStatus.NOT_FOUND, "Endpoint not found", request, null);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleMethod(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleMethod(HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request) {
+        log.warn("Unsupported HTTP method {} {}", request.getMethod(), request.getRequestURI());
         return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
-        log.error("Unexpected error on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        log.error("Unexpected error on {} {} (requestId={})", request.getMethod(), request.getRequestURI(),
+                MDC.get("requestId"), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request, null);
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message, HttpServletRequest request,
-                                                Map<String, String> errors) {
+            Map<String, String> errors) {
         return ResponseEntity.status(status)
                 .body(ErrorResponse.of(status.value(), message, request.getRequestURI(), errors));
     }
