@@ -6,16 +6,20 @@ import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import Modal from '../../components/common/Modal';
 import PageHeader from '../../components/common/PageHeader';
+import PaginationControls from '../../components/common/PaginationControls';
 import ClassForm from '../../components/forms/ClassForm';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { classService } from '../../services/classService';
+import { sortByName } from '../../utils/sort';
+import { usePagination } from '../../hooks/usePagination';
 
 export default function Classes() {
   const { data, setData, loading, error, reload } = useApi(classService.mine);
   const [creating, setCreating] = useState(false);
   const [newId, setNewId] = useState(null);
   const toast = useToast();
+  const pagination = usePagination(sortByName(data, (item) => item?.className));
 
   const createClass = async (values) => {
     const created = await classService.create(values);
@@ -53,11 +57,14 @@ export default function Classes() {
           }
         />
       ) : (
-        <div className="card-grid">
-          {data.map((cls) => (
-            <ClassCard key={cls.id} cls={cls} to={`/teacher/classes/${cls.id}`} highlight={cls.id === newId} />
-          ))}
-        </div>
+        <>
+          <div className="card-grid">
+            {pagination.pageItems.map((cls) => (
+              <ClassCard key={cls.id} cls={cls} to={`/teacher/classes/${cls.id}`} highlight={cls.id === newId} />
+            ))}
+          </div>
+          <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+        </>
       )}
 
       <Modal open={creating} title="Create class" description="A unique class code is generated automatically." onClose={() => setCreating(false)}>

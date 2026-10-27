@@ -11,17 +11,20 @@ import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
+import PaginationControls from '../../components/common/PaginationControls';
 import ProfileLinks from '../../components/common/ProfileLinks';
 import AdviceForm from '../../components/forms/AdviceForm';
 import LeetCodeTable from '../../components/tables/LeetCodeTable';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
+import { usePagination } from '../../hooks/usePagination';
 import { getErrorMessage } from '../../services/api';
 import { adviceService } from '../../services/adviceService';
 import { classService } from '../../services/classService';
 import { teacherService } from '../../services/teacherService';
 import { formatDate, initials } from '../../utils/format';
+import { sortByName } from '../../utils/sort';
 
 export default function StudentDetails() {
   const { id } = useParams();
@@ -31,6 +34,8 @@ export default function StudentDetails() {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
+  const projectPagination = usePagination(sortByName(data?.projects, (item) => item?.title));
+  const classPagination = usePagination(sortByName(data?.classes, (item) => item?.className));
 
   const giveAdvice = async (payload) => {
     const created = await adviceService.give(payload);
@@ -94,7 +99,7 @@ export default function StudentDetails() {
           <p className="muted break-anywhere">{data.email}</p>
           <ProfileLinks githubUrl={data.githubUrl} leetCodeUrl={data.leetCodeUrl} />
           <div className="chip-row">
-            {data.classes.map((c) => (
+            {classPagination.pageItems.map((c) => (
               <span key={c.id} className="chip chip-removable">
                 {c.className}
                 <button
@@ -108,6 +113,7 @@ export default function StudentDetails() {
               </span>
             ))}
           </div>
+          <PaginationControls {...classPagination} onPageChange={classPagination.setPage} />
         </div>
         <p className="profile-meta muted">Joined Dolphin {formatDate(data.joinedAt)}</p>
       </div>
@@ -147,18 +153,19 @@ export default function StudentDetails() {
           <EmptyState icon="folder" title="No projects yet" message={`${data.name} has not added any projects.`} />
         ) : (
           <div className="card-grid">
-            {data.projects.map((p) => (
+            {projectPagination.pageItems.map((p) => (
               <ProjectCard key={p.id} project={p} classLabel={p.className ?? null} />
             ))}
           </div>
         )}
+        {data.projects.length > 0 && <PaginationControls {...projectPagination} onPageChange={projectPagination.setPage} />}
       </Card>
 
       <Card title="LeetCode progress" subtitle={`${stats.solved} of ${stats.total} problems solved`} padded={false}>
         {data.leetCodeEntries.length === 0 ? (
           <EmptyState icon="code" title="No problems logged" message={`${data.name} has not logged any LeetCode problems.`} />
         ) : (
-          <LeetCodeTable entries={data.leetCodeEntries} classLabel={(e) => e.className} />
+          <LeetCodeTable entries={data.leetCodeEntries} classLabel={(e) => e.className} resetKey={id} />
         )}
       </Card>
 

@@ -22,7 +22,9 @@ export default function Users() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (data || []).filter(
-      (u) => (role === 'ALL' || u.role === role) && (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)),
+      (u) =>
+        (role === 'ALL' || u.role === role) &&
+        (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)),
     );
   }, [data, query, role]);
 
@@ -57,6 +59,7 @@ export default function Users() {
           <UsersTable
             users={filtered}
             showRole
+            resetKey={`${query}:${role}`}
             actions={(u) =>
               u.role !== 'ADMIN' && (
                 <div className="row-actions">

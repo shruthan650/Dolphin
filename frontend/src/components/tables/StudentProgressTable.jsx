@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import Button from '../common/Button';
 import { initials } from '../../utils/format';
+import PaginationControls from '../common/PaginationControls';
+import { usePagination } from '../../hooks/usePagination';
+import { sortByName, sortStrings } from '../../utils/sort';
 import Table from './Table';
 
 /** Teacher-facing student list with project and LeetCode progress. */
@@ -9,6 +12,7 @@ export default function StudentProgressTable({
   students,
   showClasses = false,
   onRemove,
+  resetKey,
   removeLabel = (s) => `Remove ${s.name} from class`,
 }) {
   const navigate = useNavigate();
@@ -24,7 +28,7 @@ export default function StudentProgressTable({
       ),
     },
     { key: 'email', header: 'Email' },
-    showClasses && { key: 'classNames', header: 'Classes', render: (s) => s.classNames.join(', ') },
+    showClasses && { key: 'classNames', header: 'Classes', render: (s) => sortStrings(s.classNames).join(', ') },
     { key: 'projectCount', header: 'Projects', className: 'cell-num' },
     {
       key: 'leetcode',
@@ -71,12 +75,17 @@ export default function StudentProgressTable({
     },
   ].filter(Boolean);
 
+  const pagination = usePagination(sortByName(students), resetKey);
+
   return (
-    <Table
-      columns={columns}
-      rows={students}
-      caption="Students"
-      onRowClick={(s) => navigate(`/teacher/students/${s.id}`)}
-    />
+    <>
+      <Table
+        columns={columns}
+        rows={pagination.pageItems}
+        caption="Students"
+        onRowClick={(s) => navigate(`/teacher/students/${s.id}`)}
+      />
+      <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+    </>
   );
 }

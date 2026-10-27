@@ -12,6 +12,9 @@ import { useToast } from '../../hooks/useToast';
 import { authService } from '../../services/authService';
 import { studentService } from '../../services/studentService';
 import { formatDate, initials } from '../../utils/format';
+import { sortByName } from '../../utils/sort';
+import PaginationControls from '../../components/common/PaginationControls';
+import { usePagination } from '../../hooks/usePagination';
 
 async function loadProfile() {
   const [me, dashboard] = await Promise.all([authService.me(), studentService.dashboard()]);
@@ -22,6 +25,7 @@ export default function Profile() {
   const { data, loading, error, reload } = useApi(loadProfile);
   const toast = useToast();
   const { user } = useAuth();
+  const classPagination = usePagination(sortByName(data?.dashboard.joinedClasses, (item) => item?.className));
 
   if (loading) return <LoadingState label="Loading profile…" />;
   if (error) return <ErrorState title="Unable to load profile" message={error.message} onRetry={reload} />;
@@ -54,7 +58,7 @@ export default function Profile() {
             <p className="muted">You have not joined a class yet.</p>
           ) : (
             <ul className="simple-list">
-              {dashboard.joinedClasses.map((c) => (
+              {classPagination.pageItems.map((c) => (
                 <li key={c.id}>
                   <span className="simple-list-title">{c.className}</span>
                   <span className="muted">
@@ -65,6 +69,7 @@ export default function Profile() {
               ))}
             </ul>
           )}
+          <PaginationControls {...classPagination} onPageChange={classPagination.setPage} />
         </Card>
         <Card title="Progress summary">
           <dl className="detail-list detail-list-inline">

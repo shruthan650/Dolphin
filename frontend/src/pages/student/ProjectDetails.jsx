@@ -14,6 +14,7 @@ import { getErrorMessage } from '../../services/api';
 import { projectService } from '../../services/projectService';
 import { studentService } from '../../services/studentService';
 import { formatDate } from '../../utils/format';
+import { sortByName } from '../../utils/sort';
 
 export default function ProjectDetails() {
   const { id } = useParams();
@@ -87,7 +88,7 @@ export default function ProjectDetails() {
               <dd>
                 {data.technologies.length ? (
                   <ul className="tech-list">
-                    {data.technologies.map((t) => (
+                    {sortByName(data.technologies, (technology) => technology).map((t) => (
                       <li key={t} className="tag">
                         {t}
                       </li>

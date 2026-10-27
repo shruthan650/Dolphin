@@ -16,6 +16,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { classService } from '../../services/classService';
 import { teacherService } from '../../services/teacherService';
+import { sortByName } from '../../utils/sort';
 
 async function loadDashboard() {
   const [stats, classes] = await Promise.all([teacherService.dashboard(), classService.mine()]);
@@ -85,7 +86,7 @@ export default function TeacherDashboard() {
                 />
               ) : (
                 <div className="stack">
-                  {data.classes.slice(0, 3).map((cls) => (
+                  {sortByName(data.classes, (item) => item?.className).slice(0, 3).map((cls) => (
                     <ClassCard key={cls.id} cls={cls} to={`/teacher/classes/${cls.id}`} />
                   ))}
                 </div>

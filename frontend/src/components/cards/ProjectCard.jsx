@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Button from '../common/Button';
 import Icon from '../common/Icon';
 import { formatDate } from '../../utils/format';
+import { sortStrings } from '../../utils/sort';
 
 /**
  * Project summary. Pass onEdit/onDelete for owner actions, viewTo for a details link. classLabel names the class the
@@ -27,7 +28,7 @@ export default function ProjectCard({ project, viewTo, onEdit, onDelete, showOwn
       )}
       {project.technologies?.length > 0 && (
         <ul className="tech-list" aria-label="Technologies">
-          {project.technologies.map((t) => (
+          {sortStrings(project.technologies).map((t) => (
             <li key={t} className="tag">
               {t}
             </li>

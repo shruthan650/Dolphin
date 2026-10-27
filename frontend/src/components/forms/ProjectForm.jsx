@@ -3,6 +3,7 @@ import Button from '../common/Button';
 import Icon from '../common/Icon';
 import Input from '../common/Input';
 import { validateOptionalUrl } from '../../utils/validation';
+import { sortStrings } from '../../utils/sort';
 import ClassSelect from './ClassSelect';
 import FormAlert from './FormAlert';
 import { useForm } from './useForm';
@@ -89,7 +90,7 @@ export default function ProjectForm({ initialValues, classes = [], submitLabel =
           Technologies
         </label>
         <div className="tag-input">
-          {values.technologies.map((tech) => (
+          {sortStrings(values.technologies).map((tech) => (
             <span key={tech} className="tag">
               {tech}
               <button

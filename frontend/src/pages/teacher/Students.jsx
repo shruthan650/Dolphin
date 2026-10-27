@@ -19,9 +19,9 @@ export default function Students() {
     return (data || []).filter(
       (s) =>
         !q ||
-        s.name.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q) ||
-        s.classNames.some((c) => c.toLowerCase().includes(q)),
+        s.name?.toLowerCase().includes(q) ||
+        s.email?.toLowerCase().includes(q) ||
+        s.classNames?.some((c) => c.toLowerCase().includes(q)),
     );
   }, [data, query]);
 
@@ -47,7 +47,7 @@ export default function Students() {
         ) : filtered.length === 0 ? (
           <EmptyState icon="search" title="No matching students" />
         ) : (
-          <StudentProgressTable students={filtered} showClasses />
+          <StudentProgressTable students={filtered} showClasses resetKey={query} />
         )}
       </Card>
     </>

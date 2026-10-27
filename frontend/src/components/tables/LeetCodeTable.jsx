@@ -3,13 +3,16 @@ import Badge from '../common/Badge';
 import Button from '../common/Button';
 import Icon from '../common/Icon';
 import { formatDate } from '../../utils/format';
+import PaginationControls from '../common/PaginationControls';
+import { usePagination } from '../../hooks/usePagination';
+import { sortByName } from '../../utils/sort';
 import Table from './Table';
 
 /**
  * LeetCode entries. showStudent adds a student column (teacher view); onEdit/onDelete add owner actions.
  * classLabel(entry) adds a Class column (null = unassigned).
  */
-export default function LeetCodeTable({ entries, showStudent = false, classLabel, onEdit, onDelete }) {
+export default function LeetCodeTable({ entries, showStudent = false, classLabel, onEdit, onDelete, resetKey }) {
   const columns = [
     {
       key: 'problemName',
@@ -52,5 +55,17 @@ export default function LeetCodeTable({ entries, showStudent = false, classLabel
     },
   ].filter(Boolean);
 
-  return <Table columns={columns} rows={entries} caption="LeetCode problems" />;
+  const sortedEntries = sortByName(
+    entries,
+    (entry) => entry?.problemName,
+    (entry) => `${entry?.studentName ?? ''}\u0000${entry?.id ?? ''}`,
+  );
+  const pagination = usePagination(sortedEntries, resetKey);
+
+  return (
+    <>
+      <Table columns={columns} rows={pagination.pageItems} caption="LeetCode problems" />
+      <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+    </>
+  );
 }

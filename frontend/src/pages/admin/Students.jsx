@@ -18,7 +18,7 @@ export default function Students() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (data || []).filter((s) => !q || s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q));
+    return (data || []).filter((s) => !q || s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q));
   }, [data, query]);
 
   return (
@@ -40,6 +40,7 @@ export default function Students() {
         ) : (
           <UsersTable
             users={filtered}
+            resetKey={query}
             classLabel="Classes joined"
             actions={(u) =>
               u.role !== 'ADMIN' && (

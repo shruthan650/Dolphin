@@ -5,16 +5,20 @@ import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
+import PaginationControls from '../../components/common/PaginationControls';
 import JoinClassForm from '../../components/forms/JoinClassForm';
 import LeaveClassDialog from '../../components/forms/LeaveClassDialog';
 import { useApi } from '../../hooks/useApi';
 import { useToast } from '../../hooks/useToast';
 import { studentService } from '../../services/studentService';
+import { sortByName } from '../../utils/sort';
+import { usePagination } from '../../hooks/usePagination';
 
 export default function MyClass() {
   const { data, setData, loading, error, reload } = useApi(studentService.classes);
   const [leaving, setLeaving] = useState(null);
   const toast = useToast();
+  const pagination = usePagination(sortByName(data, (item) => item?.className));
 
   const onLeft = (cls) => {
     setLeaving(null);
@@ -43,11 +47,14 @@ export default function MyClass() {
         ) : data.length === 0 ? (
           <EmptyState icon="book" title="You haven't joined a class yet." message="Ask your teacher for the class code and enter it above." />
         ) : (
-          <div className="card-grid">
-            {data.map((cls) => (
-              <ClassCard key={cls.id} cls={cls} onLeave={setLeaving} />
-            ))}
-          </div>
+          <>
+            <div className="card-grid">
+              {pagination.pageItems.map((cls) => (
+                <ClassCard key={cls.id} cls={cls} onLeave={setLeaving} />
+              ))}
+            </div>
+            <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+          </>
         )}
       </Card>
 

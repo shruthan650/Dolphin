@@ -11,12 +11,15 @@ import Modal from '../../components/common/Modal';
 import PageHeader from '../../components/common/PageHeader';
 import LeetCodeForm from '../../components/forms/LeetCodeForm';
 import LeetCodeTable from '../../components/tables/LeetCodeTable';
+import PaginationControls from '../../components/common/PaginationControls';
 import { useApi } from '../../hooks/useApi';
+import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../hooks/useToast';
 import { adviceService } from '../../services/adviceService';
 import { getErrorMessage } from '../../services/api';
 import { leetcodeService } from '../../services/leetcodeService';
 import { studentService } from '../../services/studentService';
+import { sortByName } from '../../utils/sort';
 
 export default function LeetCode() {
   const { data, setData, loading, error, reload } = useApi(leetcodeService.mine);
@@ -27,6 +30,7 @@ export default function LeetCode() {
     () => Object.fromEntries((classes.data || []).map((c) => [c.id, c.className])),
     [classes.data],
   );
+  const classOptions = usePagination(sortByName(classes.data, (item) => item?.className));
   const hasClasses = classes.data?.length > 0;
   const problemAdvice = (advice.data || []).filter((a) => a.targetType === 'LEETCODE');
   const [editor, setEditor] = useState(null); // null | { entry?: object }
@@ -128,13 +132,14 @@ export default function LeetCode() {
                 <div className="toolbar">
                   <select className="field-control field-control-sm" value={classFilter} onChange={(e) => setClassFilter(e.target.value)} aria-label="Filter by class">
                     <option value="ALL">All classes</option>
-                {(classes.data || []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.className}
-                  </option>
-                ))}
+                    {classOptions.pageItems.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.className}
+                      </option>
+                    ))}
                     <option value="NONE">Unassigned</option>
                   </select>
+                  <PaginationControls {...classOptions} onPageChange={classOptions.setPage} />
                   <select className="field-control field-control-sm" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
                     <option value="ALL">All statuses</option>
                     <option value="SOLVED">Solved</option>
@@ -162,7 +167,13 @@ export default function LeetCode() {
             ) : filtered.length === 0 ? (
               <EmptyState icon="search" title="No matching problems" />
             ) : (
-              <LeetCodeTable entries={filtered} classLabel={(e) => classNames[e.classId]} onEdit={(entry) => setEditor({ entry })} onDelete={setDeleting} />
+              <LeetCodeTable
+                entries={filtered}
+                classLabel={(e) => classNames[e.classId]}
+                onEdit={(entry) => setEditor({ entry })}
+                onDelete={setDeleting}
+                resetKey={`${classFilter}:${status}`}
+              />
             )}
           </Card>
         </>

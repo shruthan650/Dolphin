@@ -1,9 +1,12 @@
 import Badge from '../common/Badge';
 import { formatDate, initials } from '../../utils/format';
+import PaginationControls from '../common/PaginationControls';
+import { usePagination } from '../../hooks/usePagination';
+import { sortByName } from '../../utils/sort';
 import Table from './Table';
 
 /** Admin user listing. classLabel names the class count column; actions renders extra cells. */
-export default function UsersTable({ users, showRole = false, classLabel = 'Classes', actions }) {
+export default function UsersTable({ users, showRole = false, classLabel = 'Classes', actions, resetKey }) {
   const columns = [
     {
       key: 'name',
@@ -27,5 +30,13 @@ export default function UsersTable({ users, showRole = false, classLabel = 'Clas
     actions && { key: 'actions', header: <span className="sr-only">Actions</span>, className: 'cell-actions', render: actions },
   ].filter(Boolean);
 
-  return <Table columns={columns} rows={users} caption="Users" />;
+  const sortedUsers = sortByName(users);
+  const pagination = usePagination(sortedUsers, resetKey);
+
+  return (
+    <>
+      <Table columns={columns} rows={pagination.pageItems} caption="Users" />
+      <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+    </>
+  );
 }

@@ -17,7 +17,7 @@ import { getErrorMessage } from '../../services/api';
 
 function matches(user, query) {
   const q = query.trim().toLowerCase();
-  return !q || user.name.toLowerCase().includes(q) || user.email.toLowerCase().includes(q);
+  return !q || user.name?.toLowerCase().includes(q) || user.email?.toLowerCase().includes(q);
 }
 
 export default function Teachers() {
@@ -103,6 +103,7 @@ export default function Teachers() {
         ) : (
           <UsersTable
             users={filtered}
+            resetKey={query}
             actions={(t) => (
               <div className="row-actions">
                 <Button variant={t.active ? 'secondary' : 'primary'} size="sm" icon="power" onClick={() => setPending(t)}>

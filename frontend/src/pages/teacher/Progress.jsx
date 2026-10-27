@@ -6,24 +6,31 @@ import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingState from '../../components/common/LoadingState';
 import PageHeader from '../../components/common/PageHeader';
+import PaginationControls from '../../components/common/PaginationControls';
 import SearchInput from '../../components/common/SearchInput';
 import LeetCodeTable from '../../components/tables/LeetCodeTable';
 import { useApi } from '../../hooks/useApi';
+import { usePagination } from '../../hooks/usePagination';
 import { teacherService } from '../../services/teacherService';
+import { sortByName } from '../../utils/sort';
 
 function ProjectsTab() {
   const { data, loading, error, reload } = useApi(teacherService.projects);
   const [query, setQuery] = useState('');
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (data || []).filter(
-      (p) =>
-        !q ||
-        p.title.toLowerCase().includes(q) ||
-        p.ownerName?.toLowerCase().includes(q) ||
-        p.technologies.some((t) => t.toLowerCase().includes(q)),
+    return sortByName(
+      (data || []).filter(
+        (p) =>
+          !q ||
+          p.title.toLowerCase().includes(q) ||
+          p.ownerName?.toLowerCase().includes(q) ||
+          p.technologies.some((t) => t.toLowerCase().includes(q)),
+      ),
+      (item) => item?.title,
     );
   }, [data, query]);
+  const pagination = usePagination(filtered, query);
 
   if (loading) return <LoadingState label="Loading projects…" />;
   if (error) return <ErrorState title="Unable to load projects" message={error.message} onRetry={reload} />;
@@ -39,11 +46,12 @@ function ProjectsTab() {
         <EmptyState icon="search" title="No matching projects" />
       ) : (
         <div className="card-grid">
-          {filtered.map((p) => (
+          {pagination.pageItems.map((p) => (
             <ProjectCard key={p.id} project={p} showOwner classLabel={p.className ?? null} />
           ))}
         </div>
       )}
+      {filtered.length > 0 && <PaginationControls {...pagination} onPageChange={pagination.setPage} />}
     </Card>
   );
 }
@@ -86,7 +94,11 @@ function LeetCodeTab() {
       }
       padded={false}
     >
-      {filtered.length === 0 ? <EmptyState icon="search" title="No matching entries" /> : <LeetCodeTable entries={filtered} showStudent classLabel={(e) => e.className} />}
+      {filtered.length === 0 ? (
+        <EmptyState icon="search" title="No matching entries" />
+      ) : (
+        <LeetCodeTable entries={filtered} showStudent classLabel={(e) => e.className} resetKey={`${difficulty}:${status}`} />
+      )}
     </Card>
   );
 }

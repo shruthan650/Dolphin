@@ -18,11 +18,15 @@ import { useToast } from '../../hooks/useToast';
 import { adviceService } from '../../services/adviceService';
 import { studentService } from '../../services/studentService';
 import { formatDate, timeAgo } from '../../utils/format';
+import { sortByDate, sortByName } from '../../utils/sort';
+import PaginationControls from '../../components/common/PaginationControls';
+import { usePagination } from '../../hooks/usePagination';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const { data, loading, error, reload } = useApi(studentService.dashboard);
   const advice = useApi(adviceService.mine);
+  const joinedClassPagination = usePagination(sortByName(data?.joinedClasses, (item) => item?.className));
   const [leaving, setLeaving] = useState(null);
   const toast = useToast();
 
@@ -94,7 +98,7 @@ export default function StudentDashboard() {
             ) : advice.data.length === 0 ? (
               <p className="muted">No advice yet. Your teachers can comment on your projects and LeetCode problems.</p>
             ) : (
-              <AdviceList items={advice.data.slice(0, 5)} />
+              <AdviceList items={sortByDate(advice.data, (item) => item.createdAt).slice(-5)} />
             )}
           </Card>
 
@@ -109,7 +113,7 @@ export default function StudentDashboard() {
                 />
               ) : (
                 <ul className="simple-list">
-                  {data.recentProjects.map((p) => (
+                  {sortByName(data.recentProjects, (item) => item?.title).map((p) => (
                     <li key={p.id}>
                       <Link to={`/student/projects/${p.id}`} className="simple-list-title">
                         {p.title}
@@ -132,7 +136,7 @@ export default function StudentDashboard() {
                 />
               ) : (
                 <ul className="simple-list">
-                  {data.recentLeetCode.map((e) => (
+                  {sortByDate(data.recentLeetCode, (item) => item.updatedAt).map((e) => (
                     <li key={e.id}>
                       <span className="simple-list-title">{e.problemName}</span>
                       <span className="badge-row">
@@ -150,10 +154,11 @@ export default function StudentDashboard() {
           {data.joinedClasses.length > 0 && (
             <Card title="My classes" actions={<Button variant="ghost" size="sm" to="/student/class">Manage</Button>}>
               <div className="card-grid">
-                {data.joinedClasses.map((cls) => (
+                {joinedClassPagination.pageItems.map((cls) => (
                   <ClassCard key={cls.id} cls={cls} onLeave={setLeaving} />
                 ))}
               </div>
+              <PaginationControls {...joinedClassPagination} onPageChange={joinedClassPagination.setPage} />
             </Card>
           )}
         </>

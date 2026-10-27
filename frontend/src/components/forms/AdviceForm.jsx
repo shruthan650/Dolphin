@@ -2,6 +2,9 @@ import Button from '../common/Button';
 import Input from '../common/Input';
 import FormAlert from './FormAlert';
 import { useForm } from './useForm';
+import PaginationControls from '../common/PaginationControls';
+import { usePagination } from '../../hooks/usePagination';
+import { sortByName } from '../../utils/sort';
 
 const MAX_LENGTH = 1000;
 
@@ -18,6 +21,8 @@ function validate(values) {
  * onSubmit receives { targetType, targetId, message }.
  */
 export default function AdviceForm({ projects, entries, onSubmit }) {
+  const projectPagination = usePagination(sortByName(projects, (item) => item?.title));
+  const entryPagination = usePagination(sortByName(entries, (item) => item?.problemName));
   const { values, bind, handleSubmit, submitting, formError, setValues } = useForm(
     { target: '', message: '' },
     validate,
@@ -35,7 +40,7 @@ export default function AdviceForm({ projects, entries, onSubmit }) {
         <option value="">Choose a project or problem…</option>
         {projects.length > 0 && (
           <optgroup label="Projects">
-            {projects.map((p) => (
+            {projectPagination.pageItems.map((p) => (
               <option key={p.id} value={`PROJECT:${p.id}`}>
                 {p.title}
               </option>
@@ -44,7 +49,7 @@ export default function AdviceForm({ projects, entries, onSubmit }) {
         )}
         {entries.length > 0 && (
           <optgroup label="LeetCode problems">
-            {entries.map((e) => (
+            {entryPagination.pageItems.map((e) => (
               <option key={e.id} value={`LEETCODE:${e.id}`}>
                 {e.problemName} ({e.status.replace('_', ' ').toLowerCase()})
               </option>
@@ -52,6 +57,8 @@ export default function AdviceForm({ projects, entries, onSubmit }) {
           </optgroup>
         )}
       </Input>
+      <PaginationControls {...projectPagination} onPageChange={projectPagination.setPage} />
+      <PaginationControls {...entryPagination} onPageChange={entryPagination.setPage} />
       <Input
         as="textarea"
         label="Advice"
