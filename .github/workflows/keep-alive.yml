@@ -1,0 +1,16 @@
+name: Syncro Backend Health Check
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Render backend health
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --max-time 30 \
+            https://dolphin-rlvv.onrender.com/api/health
