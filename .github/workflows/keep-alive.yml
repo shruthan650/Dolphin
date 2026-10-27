@@ -1,4 +1,4 @@
-name: Syncro Backend Health Check
+name: Dolphin Backend Health Check
 
 on:
   schedule:
@@ -9,7 +9,7 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Render backend health
+      - name: Check Dolphin backend health
         run: |
           curl --fail-with-body --silent --show-error \
             --max-time 30 \
