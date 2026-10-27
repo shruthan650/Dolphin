@@ -2,6 +2,7 @@ package com.dolphin.service;
 
 import com.dolphin.dto.classdto.ClassResponse;
 import com.dolphin.dto.leetcode.LeetCodeResponse;
+import com.dolphin.dto.leetcode.LeetCodeStreakResponse;
 import com.dolphin.dto.project.ProjectResponse;
 import com.dolphin.dto.teacher.TeacherStudentDetailResponse;
 import com.dolphin.dto.teacher.TeacherStudentResponse;
@@ -38,16 +39,19 @@ public class TeacherService {
     private final LeetCodeRepository leetCodeRepository;
     private final StudentProgressAssembler progressAssembler;
     private final AdviceService adviceService;
+    private final LeetCodeStreakService leetCodeStreakService;
 
     public TeacherService(ClassRepository classRepository, UserRepository userRepository,
                           ProjectRepository projectRepository, LeetCodeRepository leetCodeRepository,
-                          StudentProgressAssembler progressAssembler, AdviceService adviceService) {
+                          StudentProgressAssembler progressAssembler, AdviceService adviceService,
+                          LeetCodeStreakService leetCodeStreakService) {
         this.classRepository = classRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.leetCodeRepository = leetCodeRepository;
         this.progressAssembler = progressAssembler;
         this.adviceService = adviceService;
+        this.leetCodeStreakService = leetCodeStreakService;
     }
 
     public List<TeacherStudentResponse> listStudents(String teacherId) {
@@ -70,7 +74,7 @@ public class TeacherService {
                 .toList();
         return new TeacherStudentDetailResponse(student.getId(), student.getName(), student.getEmail(),
                 student.getGithubUrl(), student.getLeetCodeUrl(), student.isActive(), student.getCreatedAt(), classes,
-                LeetCodeMapper.toStats(entries), projects,
+                LeetCodeMapper.toStats(entries), leetCodeStreakService.calculate(entries), projects,
                 entries.stream().map(e -> LeetCodeMapper.toResponse(e, null, scope.className(e.getClassId()))).toList(),
                 adviceService.forStudent(studentId, scope));
     }

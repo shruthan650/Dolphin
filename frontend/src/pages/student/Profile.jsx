@@ -13,8 +13,10 @@ import { authService } from '../../services/authService';
 import { studentService } from '../../services/studentService';
 import { formatDate, initials } from '../../utils/format';
 import { sortByName } from '../../utils/sort';
+import { canViewLeetCodeStreak } from '../../utils/streakVisibility';
 import PaginationControls from '../../components/common/PaginationControls';
 import { usePagination } from '../../hooks/usePagination';
+import LeetCodeStreakCard from '../../components/cards/LeetCodeStreakCard';
 
 async function loadProfile() {
   const [me, dashboard] = await Promise.all([authService.me(), studentService.dashboard()]);
@@ -51,6 +53,10 @@ export default function Profile() {
         </div>
         <p className="profile-meta muted">Member since {formatDate(me.createdAt)}</p>
       </div>
+
+      {canViewLeetCodeStreak(user?.role, 'own-student-profile') && (
+        <LeetCodeStreakCard streak={dashboard.leetCodeStreak} />
+      )}
 
       <div className="grid-2">
         <Card title="Classes">

@@ -1182,6 +1182,210 @@ textarea.field-control {
   margin-top: 16px;
 }
 
+.table-pagination {
+  margin-top: 0;
+  padding: 12px 16px;
+}
+
+.table-pagination .btn {
+  min-height: 40px;
+}
+
+.streak-card {
+  overflow: hidden;
+  border-color: #3b3422;
+  background: linear-gradient(135deg, #111827, #1f2937);
+  color: #f9fafb;
+}
+
+.streak-card .card-title {
+  color: #fff;
+}
+
+.streak-card .card-subtitle,
+.streak-card .muted {
+  color: #cbd5e1;
+}
+
+.streak-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.streak-current {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.streak-flame {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.streak-count {
+  color: #fbbf24;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.streak-label {
+  margin-top: 4px;
+  color: #cbd5e1;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.streak-message {
+  grid-column: 1;
+  color: #e5e7eb;
+  font-size: 14px;
+}
+
+.streak-stats {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.streak-stats div {
+  display: grid;
+  gap: 4px;
+}
+
+.streak-stats dt {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.streak-stats dd {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.streak-week {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 26px;
+}
+
+.streak-week::before {
+  position: absolute;
+  top: 31px;
+  right: 7%;
+  left: 7%;
+  height: 2px;
+  background: #4b5563;
+  content: '';
+}
+
+.streak-week-day {
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  color: #d1d5db;
+  font-size: 12px;
+}
+
+.streak-weekday {
+  font-weight: 600;
+}
+
+.streak-day-marker {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 2px solid #6b7280;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.streak-day-marker.is-complete {
+  border-color: #fbbf24;
+  background: #fbbf24;
+}
+
+.streak-week-day.is-today .streak-day-marker {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.streak-activity {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #374151;
+}
+
+.streak-activity-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.streak-activity-header h3 {
+  color: #fff;
+  font-size: 14px;
+}
+
+.streak-activity-header span {
+  font-size: 12px;
+}
+
+.streak-heatmap {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.streak-heatmap-day {
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 22px;
+  justify-self: center;
+  border: 1px solid #4b5563;
+  border-radius: 3px;
+  background: #374151;
+}
+
+.streak-heatmap-day.has-activity {
+  border-color: #fbbf24;
+  background: #fbbf24;
+}
+
+.streak-legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.streak-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #fbbf24;
+}
+
 .segmented {
   display: inline-flex;
   padding: 3px;
@@ -1219,14 +1423,24 @@ textarea.field-control {
      instead of widening the whole page on small screens. */
   position: relative;
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
-  min-width: 640px;
+  min-width: 760px;
+}
+
+.student-progress-table {
+  min-width: 900px;
+}
+
+.leetcode-table {
+  min-width: 880px;
 }
 
 .table th {
@@ -1237,15 +1451,22 @@ textarea.field-control {
   letter-spacing: 0.04em;
   color: var(--text-3);
   background: var(--surface-2);
-  padding: 10px 20px;
+  height: 44px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .table td {
-  padding: 12px 20px;
+  height: 52px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table tbody tr:last-child td {
@@ -1271,24 +1492,45 @@ th.cell-num {
 
 .cell-actions {
   text-align: right;
-  width: 1%;
   white-space: nowrap;
+  overflow: visible;
 }
 
 .row-actions {
   display: inline-flex;
+  width: 100%;
   gap: 4px;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .cell-user {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.cell-user .avatar {
+  flex: 0 0 auto;
+}
+
+.cell-truncate {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cell-strong {
   font-weight: 600;
+}
+
+.table .badge {
+  min-width: 64px;
+  justify-content: center;
+  vertical-align: middle;
 }
 
 .cell-link {
@@ -1300,13 +1542,14 @@ th.cell-num {
 
 .progress-cell {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 10px;
-  min-width: 180px;
+  gap: 8px;
 }
 
 .progress-bar {
-  flex: 1;
+  flex: 1 1 64px;
+  min-width: 24px;
   height: 6px;
   background: var(--track);
   border-radius: 999px;
@@ -1322,7 +1565,11 @@ th.cell-num {
 }
 
 .progress-text {
-  font-size: 13px;
+  min-width: 0;
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
   color: var(--text-2);
   white-space: nowrap;
 }
@@ -2124,6 +2371,30 @@ th.cell-num {
 
   .detail-list-inline {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .streak-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .streak-stats {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .streak-week {
+    gap: 2px;
+  }
+
+  .streak-day-marker {
+    width: 25px;
+    height: 25px;
+  }
+
+  .streak-heatmap {
+    gap: 2px;
   }
 
   .modal-footer .btn,

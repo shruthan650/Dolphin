@@ -17,33 +17,37 @@ export default function LeetCodeTable({ entries, showStudent = false, classLabel
     {
       key: 'problemName',
       header: 'Problem',
+      width: showStudent ? 21 : 25,
       render: (e) =>
         e.problemUrl ? (
           <a href={e.problemUrl} target="_blank" rel="noopener noreferrer" className="cell-link">
-            {e.problemName} <Icon name="external" size={13} />
+            <span className="cell-truncate" title={e.problemName}>{e.problemName}</span> <Icon name="external" size={13} />
           </a>
         ) : (
-          <span className="cell-strong">{e.problemName}</span>
+          <span className="cell-strong cell-truncate" title={e.problemName}>{e.problemName}</span>
         ),
     },
     showStudent && {
       key: 'studentName',
       header: 'Student',
+      width: 17,
       render: (e) => <Link to={`/teacher/students/${e.studentId}`}>{e.studentName}</Link>,
     },
     classLabel && {
       key: 'class',
       header: 'Class',
+      width: 16,
       render: (e) => classLabel(e) || <span className="muted">Unassigned</span>,
     },
-    { key: 'difficulty', header: 'Difficulty', render: (e) => <Badge value={e.difficulty} /> },
-    { key: 'status', header: 'Status', render: (e) => <Badge value={e.status} /> },
-    { key: 'topic', header: 'Topic', render: (e) => e.topic || <span className="muted">—</span> },
-    { key: 'solvedAt', header: 'Solved', render: (e) => formatDate(e.solvedAt) },
+    { key: 'difficulty', header: 'Difficulty', width: 10, render: (e) => <Badge value={e.difficulty} /> },
+    { key: 'status', header: 'Status', width: 12, render: (e) => <Badge value={e.status} /> },
+    { key: 'topic', header: 'Topic', width: 12, render: (e) => <span className="cell-truncate" title={e.topic}>{e.topic || <span className="muted">—</span>}</span> },
+    { key: 'solvedAt', header: 'Solved', width: 14, render: (e) => formatDate(e.solvedAt) },
     (onEdit || onDelete) && {
       key: 'actions',
       header: <span className="sr-only">Actions</span>,
       className: 'cell-actions',
+      fixedWidth: 104,
       render: (e) => (
         <div className="row-actions">
           {onEdit && <Button variant="ghost" size="sm" icon="edit" onClick={() => onEdit(e)} aria-label={`Edit ${e.problemName}`} />}
@@ -64,8 +68,8 @@ export default function LeetCodeTable({ entries, showStudent = false, classLabel
 
   return (
     <>
-      <Table columns={columns} rows={pagination.pageItems} caption="LeetCode problems" />
-      <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+      <Table columns={columns} rows={pagination.pageItems} caption="LeetCode problems" className="leetcode-table" />
+      <PaginationControls {...pagination} onPageChange={pagination.setPage} className="table-pagination" />
     </>
   );
 }

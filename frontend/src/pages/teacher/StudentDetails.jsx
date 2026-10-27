@@ -25,6 +25,8 @@ import { classService } from '../../services/classService';
 import { teacherService } from '../../services/teacherService';
 import { formatDate, initials } from '../../utils/format';
 import { sortByName } from '../../utils/sort';
+import { canViewLeetCodeStreak } from '../../utils/streakVisibility';
+import LeetCodeStreakCard from '../../components/cards/LeetCodeStreakCard';
 
 export default function StudentDetails() {
   const { id } = useParams();
@@ -130,6 +132,10 @@ export default function StudentDetails() {
           hint="Solved by difficulty"
         />
       </div>
+
+      {canViewLeetCodeStreak(user?.role, 'authorized-student-profile') && (
+        <LeetCodeStreakCard streak={data.leetCodeStreak} />
+      )}
 
       <Card
         title="Advice"

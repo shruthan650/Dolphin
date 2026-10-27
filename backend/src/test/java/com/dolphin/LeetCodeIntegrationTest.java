@@ -94,6 +94,10 @@ class LeetCodeIntegrationTest extends IntegrationTestSupport {
         mvc.perform(auth(get("/api/teacher/students/" + student.id()), teacher))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.leetCodeStats.solved").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.currentStreak").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.longestStreak").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.totalActiveDays").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.recentActivity", hasSize(84)))
                 .andExpect(jsonPath("$.projects", hasSize(1)))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
         mvc.perform(auth(get("/api/teacher/students"), teacher))
@@ -149,7 +153,25 @@ class LeetCodeIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.joinedClasses", hasSize(1)))
                 .andExpect(jsonPath("$.projectCount").value(1))
                 .andExpect(jsonPath("$.leetCodeStats.solved").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.currentStreak").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.totalActiveDays").value(1))
+                .andExpect(jsonPath("$.leetCodeStreak.recentActivity", hasSize(84)))
                 .andExpect(jsonPath("$.recentProjects", hasSize(1)))
                 .andExpect(jsonPath("$.recentLeetCode", hasSize(1)));
+    }
+
+    @Test
+    void adminDoesNotReceiveStreakDataOrAccessStudentStreakProfiles() throws Exception {
+        Account student = registerStudent();
+        createLeetCode(student, "Two Sum");
+        Account admin = admin();
+
+        mvc.perform(auth(get("/api/student/dashboard"), admin))
+                .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/teacher/students/" + student.id()), admin))
+                .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/admin/students"), admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].leetCodeStreak").doesNotExist());
     }
 }

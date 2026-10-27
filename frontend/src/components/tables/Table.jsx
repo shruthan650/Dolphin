@@ -2,11 +2,28 @@
  * Generic responsive table. Columns: { key, header, render?(row), className? }.
  * Wraps in a horizontally scrollable container on small screens.
  */
-export default function Table({ columns, rows, rowKey = 'id', onRowClick, caption }) {
+export default function Table({ columns, rows, rowKey = 'id', onRowClick, caption, className = '' }) {
+  const fixedWidth = columns.reduce((total, column) => total + (column.fixedWidth ?? 0), 0);
+  const flexibleWeight = columns.reduce((total, column) => total + (column.fixedWidth ? 0 : column.width ?? 1), 0);
+
   return (
     <div className="table-wrap">
-      <table className="table">
+      <table className={`table ${className}`}>
         {caption && <caption className="sr-only">{caption}</caption>}
+        <colgroup>
+          {columns.map((col) => (
+            <col
+              key={col.key}
+              style={{
+                width: col.fixedWidth
+                  ? `${col.fixedWidth}px`
+                  : fixedWidth
+                    ? `calc(${((col.width ?? 1) / flexibleWeight) * 100}% - ${(col.width ?? 1) / flexibleWeight * fixedWidth}px)`
+                    : `${((col.width ?? 1) / flexibleWeight) * 100}%`,
+              }}
+            />
+          ))}
+        </colgroup>
         <thead>
           <tr>
             {columns.map((col) => (

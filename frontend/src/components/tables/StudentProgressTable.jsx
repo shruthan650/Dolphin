@@ -20,19 +20,21 @@ export default function StudentProgressTable({
     {
       key: 'name',
       header: 'Name',
+      width: showClasses ? 20 : 27,
       render: (s) => (
         <div className="cell-user">
           <span className="avatar avatar-sm">{initials(s.name)}</span>
-          <span className="cell-strong">{s.name}</span>
+          <span className="cell-strong cell-truncate" title={s.name}>{s.name}</span>
         </div>
       ),
     },
-    { key: 'email', header: 'Email' },
-    showClasses && { key: 'classNames', header: 'Classes', render: (s) => sortStrings(s.classNames).join(', ') },
-    { key: 'projectCount', header: 'Projects', className: 'cell-num' },
+    { key: 'email', header: 'Email', width: showClasses ? 23 : 30, render: (s) => <span className="cell-truncate" title={s.email}>{s.email}</span> },
+    showClasses && { key: 'classNames', header: 'Classes', width: 16, render: (s) => <span className="cell-truncate" title={sortStrings(s.classNames).join(', ')}>{sortStrings(s.classNames).join(', ')}</span> },
+    { key: 'projectCount', header: 'Projects', width: showClasses ? 8 : 12, className: 'cell-num' },
     {
       key: 'leetcode',
       header: 'LeetCode progress',
+      width: showClasses ? 18 : 21,
       render: (s) => {
         const pct = s.leetCodeTotal ? Math.round((s.leetCodeSolved / s.leetCodeTotal) * 100) : 0;
         return (
@@ -40,7 +42,7 @@ export default function StudentProgressTable({
             <div className="progress-bar" aria-hidden="true">
               <span style={{ width: `${pct}%` }} />
             </div>
-            <span className="progress-text">
+            <span className="progress-text" title={`${s.leetCodeSolved} solved / ${s.leetCodeTotal}`}>
               {s.leetCodeSolved} solved / {s.leetCodeTotal}
             </span>
           </div>
@@ -51,6 +53,7 @@ export default function StudentProgressTable({
       key: 'actions',
       header: <span className="sr-only">Actions</span>,
       className: 'cell-actions',
+      fixedWidth: 136,
       render: (s) => (
         <div className="row-actions">
           <Button variant="secondary" size="sm" to={`/teacher/students/${s.id}`} onClick={(e) => e.stopPropagation()}>
@@ -83,9 +86,10 @@ export default function StudentProgressTable({
         columns={columns}
         rows={pagination.pageItems}
         caption="Students"
+        className="student-progress-table"
         onRowClick={(s) => navigate(`/teacher/students/${s.id}`)}
       />
-      <PaginationControls {...pagination} onPageChange={pagination.setPage} />
+      <PaginationControls {...pagination} onPageChange={pagination.setPage} className="table-pagination" />
     </>
   );
 }

@@ -4,6 +4,7 @@ import com.dolphin.dto.advice.AdviceResponse;
 import com.dolphin.dto.classdto.ClassResponse;
 import com.dolphin.dto.leetcode.LeetCodeResponse;
 import com.dolphin.dto.leetcode.LeetCodeStatsResponse;
+import com.dolphin.dto.leetcode.LeetCodeStreakResponse;
 import com.dolphin.dto.project.ProjectResponse;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ public record TeacherStudentDetailResponse(
         Instant joinedAt,
         List<ClassResponse> classes,
         LeetCodeStatsResponse leetCodeStats,
+        LeetCodeStreakResponse leetCodeStreak,
         List<ProjectResponse> projects,
         List<LeetCodeResponse> leetCodeEntries,
         List<AdviceResponse> advice

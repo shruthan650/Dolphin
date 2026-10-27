@@ -4,6 +4,7 @@ import com.dolphin.dto.admin.AdminDashboardResponse;
 import com.dolphin.dto.admin.AdminUserResponse;
 import com.dolphin.dto.common.ActivityResponse;
 import com.dolphin.dto.leetcode.LeetCodeResponse;
+import com.dolphin.dto.leetcode.LeetCodeStreakResponse;
 import com.dolphin.dto.project.ProjectResponse;
 import com.dolphin.dto.student.StudentDashboardResponse;
 import com.dolphin.dto.teacher.TeacherDashboardResponse;
@@ -42,11 +43,12 @@ public class DashboardService {
     private final AdminService adminService;
     private final ClassService classService;
     private final StudentProgressAssembler progressAssembler;
+    private final LeetCodeStreakService leetCodeStreakService;
 
     public DashboardService(UserRepository userRepository, ClassRepository classRepository,
                             ProjectRepository projectRepository, LeetCodeRepository leetCodeRepository,
                             AdminService adminService, ClassService classService,
-                            StudentProgressAssembler progressAssembler) {
+                            StudentProgressAssembler progressAssembler, LeetCodeStreakService leetCodeStreakService) {
         this.userRepository = userRepository;
         this.classRepository = classRepository;
         this.projectRepository = projectRepository;
@@ -54,6 +56,7 @@ public class DashboardService {
         this.adminService = adminService;
         this.classService = classService;
         this.progressAssembler = progressAssembler;
+        this.leetCodeStreakService = leetCodeStreakService;
     }
 
     public AdminDashboardResponse adminDashboard() {
@@ -102,7 +105,8 @@ public class DashboardService {
                 .sorted(Comparator.comparing(LeetCodeEntry::getUpdatedAt).reversed())
                 .limit(RECENT_LIMIT).map(LeetCodeMapper::toResponse).toList();
         return new StudentDashboardResponse(classService.listStudentClasses(studentId), projects.size(),
-                LeetCodeMapper.toStats(entries), recentProjects, recentLeetCode);
+                LeetCodeMapper.toStats(entries), recentProjects, recentLeetCode,
+                leetCodeStreakService.calculate(entries));
     }
 
     private List<ActivityResponse> recentActivity(List<Project> projects, List<LeetCodeEntry> entries,
