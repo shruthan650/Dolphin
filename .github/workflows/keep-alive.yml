@@ -2,15 +2,35 @@ name: Dolphin Backend Health Check
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Run every 10 minutes, offset from the top of the hour to reduce scheduling delays.
+    - cron: "3,13,23,33,43,53 * * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   health-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - name: Check Dolphin backend health
+        shell: bash
         run: |
-          curl --fail-with-body --silent --show-error \
-            --max-time 30 \
-            https://dolphin-rlvv.onrender.com/api/health
+          URL="https://dolphin-rlvv.onrender.com/api/health"
+          for attempt in 1 2 3; do
+            echo "Health check attempt ${attempt}/3: ${URL}"
+            if curl --fail-with-body --silent --show-error --location --connect-timeout 15 --max-time 60 "${URL}"; then
+              echo
+              echo "Dolphin backend health check succeeded."
+              exit 0
+            fi
+
+            if [ "${attempt}" -lt 3 ]; then
+              echo "Health check failed; waiting 15 seconds before retrying."
+              sleep 15
+            fi
+          done
+
+          echo "Dolphin backend health check failed after 3 attempts." >&2
+          exit 1
