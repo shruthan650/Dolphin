@@ -104,6 +104,7 @@ export default function Teachers() {
           <UsersTable
             users={filtered}
             resetKey={query}
+            actionsWidth={208}
             actions={(t) => (
               <div className="row-actions">
                 <Button variant={t.active ? 'secondary' : 'primary'} size="sm" icon="power" onClick={() => setPending(t)}>

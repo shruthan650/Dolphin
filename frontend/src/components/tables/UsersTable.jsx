@@ -6,7 +6,7 @@ import { sortByName } from '../../utils/sort';
 import Table from './Table';
 
 /** Admin user listing. classLabel names the class count column; actions renders extra cells. */
-export default function UsersTable({ users, showRole = false, classLabel = 'Classes', actions, resetKey }) {
+export default function UsersTable({ users, showRole = false, classLabel = 'Classes', actions, actionsWidth = 76, resetKey }) {
   const columns = [
     {
       key: 'name',
@@ -29,7 +29,7 @@ export default function UsersTable({ users, showRole = false, classLabel = 'Clas
       render: (u) => <Badge tone={u.active ? 'green' : 'red'}>{u.active ? 'Active' : 'Inactive'}</Badge>,
     },
     { key: 'createdAt', header: 'Created', width: showRole ? 15 : 15, render: (u) => formatDate(u.createdAt) },
-    actions && { key: 'actions', header: <span className="sr-only">Actions</span>, className: 'cell-actions', fixedWidth: 64, render: actions },
+    actions && { key: 'actions', header: <span className="sr-only">Actions</span>, className: 'cell-actions', fixedWidth: actionsWidth, render: actions },
   ].filter(Boolean);
 
   const sortedUsers = sortByName(users);
@@ -37,7 +37,12 @@ export default function UsersTable({ users, showRole = false, classLabel = 'Clas
 
   return (
     <>
-      <Table columns={columns} rows={pagination.pageItems} caption="Users" className="users-table" />
+      <Table
+        columns={columns}
+        rows={pagination.pageItems}
+        caption="Users"
+        className={`users-table ${actions && actionsWidth > 76 ? 'users-table-wide-actions' : ''}`}
+      />
       <PaginationControls {...pagination} onPageChange={pagination.setPage} className="table-pagination" />
     </>
   );

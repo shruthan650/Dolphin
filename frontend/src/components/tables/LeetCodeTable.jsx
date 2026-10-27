@@ -47,7 +47,7 @@ export default function LeetCodeTable({ entries, showStudent = false, classLabel
       key: 'actions',
       header: <span className="sr-only">Actions</span>,
       className: 'cell-actions',
-      fixedWidth: 104,
+      fixedWidth: 108,
       render: (e) => (
         <div className="row-actions">
           {onEdit && <Button variant="ghost" size="sm" icon="edit" onClick={() => onEdit(e)} aria-label={`Edit ${e.problemName}`} />}

@@ -1545,6 +1545,10 @@ textarea.field-control {
   min-width: 900px;
 }
 
+.users-table-wide-actions {
+  min-width: 1000px;
+}
+
 .leetcode-table {
   min-width: 880px;
 }
@@ -1600,6 +1604,19 @@ th.cell-num {
   text-align: right;
   white-space: nowrap;
   overflow: visible;
+}
+
+.cell-actions .row-actions {
+  width: max-content;
+  max-width: none;
+  margin-left: auto;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cell-actions .row-actions > * {
+  flex: 0 0 auto;
 }
 
 .row-actions {
