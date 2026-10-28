@@ -1135,6 +1135,44 @@ textarea {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.password-control {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.password-control .field-control {
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 0.15s, color 0.15s;
+}
+
+.password-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
 textarea.field-control {
   height: auto;
   padding: 10px 12px;
