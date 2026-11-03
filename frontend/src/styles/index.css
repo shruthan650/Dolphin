@@ -2769,6 +2769,15 @@ th.cell-num {
   padding-top: 4px;
 }
 
+.logout-section {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.logout-button {
+  min-width: 128px;
+}
+
 .chip-sm {
   align-self: flex-start;
   padding: 1px 8px;
@@ -2799,6 +2808,7 @@ th.cell-num {
 
   .app-content {
     padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    touch-action: pan-y;
   }
 
   .mobile-hide-create-action {
