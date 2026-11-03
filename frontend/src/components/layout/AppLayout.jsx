@@ -3,6 +3,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import MobileBottomNavigation from './MobileBottomNavigation';
+import MobileQuickActions from './MobileQuickActions';
 
 export default function AppLayout() {
   const { user, role, logout } = useAuth();
@@ -30,6 +32,8 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <MobileBottomNavigation role={role} />
+      <MobileQuickActions role={role} />
     </div>
   );
 }

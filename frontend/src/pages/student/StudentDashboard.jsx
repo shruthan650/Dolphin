@@ -49,10 +49,10 @@ export default function StudentDashboard() {
         subtitle="Keep track of your projects and problem-solving progress"
         actions={
           <>
-            <Button variant="secondary" icon="code" to="/student/leetcode">
+            <Button variant="secondary" icon="code" to="/student/leetcode" className="mobile-hide-create-action">
               Log problem
             </Button>
-            <Button icon="plus" to="/student/projects/create">
+            <Button icon="plus" to="/student/projects/create" className="mobile-hide-create-action">
               New project
             </Button>
           </>
@@ -109,7 +109,7 @@ export default function StudentDashboard() {
                   icon="folder"
                   title="No projects yet."
                   message="Create your first project."
-                  action={<Button icon="plus" to="/student/projects/create">Create project</Button>}
+                  action={<Button icon="plus" to="/student/projects/create" className="mobile-hide-create-action">Create project</Button>}
                 />
               ) : (
                 <ul className="simple-list">
@@ -132,7 +132,7 @@ export default function StudentDashboard() {
                   icon="code"
                   title="No problems logged yet."
                   message="Track the problems you solve to show your progress."
-                  action={<Button icon="plus" to="/student/leetcode">Add problem</Button>}
+                  action={<Button icon="plus" to="/student/leetcode" className="mobile-hide-create-action">Add problem</Button>}
                 />
               ) : (
                 <ul className="simple-list">

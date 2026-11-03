@@ -62,7 +62,7 @@ export default function Projects() {
         title="My projects"
         subtitle="Showcase what you've built"
         actions={
-          <Button icon="plus" to="/student/projects/create">
+          <Button icon="plus" to="/student/projects/create" className="mobile-hide-create-action">
             Create project
           </Button>
         }
@@ -78,7 +78,7 @@ export default function Projects() {
           title="No projects yet."
           message="Create your first project."
           action={
-            <Button icon="plus" to="/student/projects/create">
+            <Button icon="plus" to="/student/projects/create" className="mobile-hide-create-action">
               Create project
             </Button>
           }

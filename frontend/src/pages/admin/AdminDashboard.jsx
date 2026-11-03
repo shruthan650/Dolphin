@@ -31,7 +31,7 @@ export default function AdminDashboard() {
         title="Admin dashboard"
         subtitle="System-wide overview of Dolphin"
         actions={
-          <Button icon="plus" onClick={() => setCreating(true)}>
+          <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
             Create teacher
           </Button>
         }

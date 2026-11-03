@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AdviceList from '../../components/cards/AdviceList';
 import StatCard from '../../components/cards/StatCard';
 import Button from '../../components/common/Button';
@@ -22,6 +23,8 @@ import { studentService } from '../../services/studentService';
 import { sortByName } from '../../utils/sort';
 
 export default function LeetCode() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data, setData, loading, error, reload } = useApi(leetcodeService.mine);
   const advice = useApi(adviceService.mine);
   const classes = useApi(studentService.classes);
@@ -38,6 +41,12 @@ export default function LeetCode() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('ALL');
   const toast = useToast();
+
+  useEffect(() => {
+    if (location.state?.mobileAction !== 'log-problem') return;
+    setEditor({});
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const stats = useMemo(() => {
     const entries = data || [];
@@ -94,7 +103,7 @@ export default function LeetCode() {
         title="LeetCode progress"
         subtitle="Log the problems you work on and track your growth"
         actions={
-          <Button icon="plus" onClick={() => setEditor({})} disabled={!hasClasses}>
+          <Button icon="plus" onClick={() => setEditor({})} disabled={!hasClasses} className="mobile-hide-create-action">
             Add problem
           </Button>
         }
@@ -158,7 +167,7 @@ export default function LeetCode() {
                 message="Add the first problem you've worked on."
                 action={
                   hasClasses && (
-                    <Button icon="plus" onClick={() => setEditor({})}>
+                    <Button icon="plus" onClick={() => setEditor({})} className="mobile-hide-create-action">
                       Add problem
                     </Button>
                   )

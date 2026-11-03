@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ClassCard from '../../components/cards/ClassCard';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
@@ -15,11 +16,19 @@ import { sortByName } from '../../utils/sort';
 import { usePagination } from '../../hooks/usePagination';
 
 export default function Classes() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data, setData, loading, error, reload } = useApi(classService.mine);
   const [creating, setCreating] = useState(false);
   const [newId, setNewId] = useState(null);
   const toast = useToast();
   const pagination = usePagination(sortByName(data, (item) => item?.className));
+
+  useEffect(() => {
+    if (location.state?.mobileAction !== 'add-class') return;
+    setCreating(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const createClass = async (values) => {
     const created = await classService.create(values);
@@ -35,7 +44,7 @@ export default function Classes() {
         title="My classes"
         subtitle="Share a class code with students so they can join"
         actions={
-          <Button icon="plus" onClick={() => setCreating(true)}>
+          <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
             Create class
           </Button>
         }
@@ -51,7 +60,7 @@ export default function Classes() {
           title="You haven't created any classes yet."
           message="Create a class to get started."
           action={
-            <Button icon="plus" onClick={() => setCreating(true)}>
+            <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
               Create class
             </Button>
           }

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -21,6 +22,8 @@ function matches(user, query) {
 }
 
 export default function Teachers() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data, setData, loading, error, reload } = useApi(adminService.teachers);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState('');
@@ -28,6 +31,12 @@ export default function Teachers() {
   const [deleting, setDeleting] = useState(null);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
+
+  useEffect(() => {
+    if (location.state?.mobileAction !== 'add-teacher') return;
+    setCreating(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const filtered = useMemo(() => (data || []).filter((t) => matches(t, query)), [data, query]);
 
@@ -72,7 +81,7 @@ export default function Teachers() {
         title="Teachers"
         subtitle="Create teacher accounts and manage their access"
         actions={
-          <Button icon="plus" onClick={() => setCreating(true)}>
+          <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
             Create teacher
           </Button>
         }
@@ -93,7 +102,7 @@ export default function Teachers() {
             title="No teachers yet"
             message="Create the first teacher account so they can start creating classes."
             action={
-              <Button icon="plus" onClick={() => setCreating(true)}>
+              <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
                 Create teacher
               </Button>
             }

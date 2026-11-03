@@ -43,7 +43,7 @@ export default function TeacherDashboard() {
         title={`Welcome, ${user?.name?.split(' ')[0] ?? 'Teacher'}`}
         subtitle="Here's how your students are progressing"
         actions={
-          <Button icon="plus" onClick={() => setCreating(true)}>
+          <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
             Create class
           </Button>
         }
@@ -79,7 +79,7 @@ export default function TeacherDashboard() {
                   title="You haven't created any classes yet."
                   message="Create a class to get started."
                   action={
-                    <Button icon="plus" onClick={() => setCreating(true)}>
+                    <Button icon="plus" onClick={() => setCreating(true)} className="mobile-hide-create-action">
                       Create class
                     </Button>
                   }
