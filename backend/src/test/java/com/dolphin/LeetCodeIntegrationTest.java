@@ -25,10 +25,12 @@ class LeetCodeIntegrationTest extends IntegrationTestSupport {
         mvc.perform(auth(withJson(post("/api/leetcode"), Map.of(
                         "problemName", "Two Sum", "problemUrl", "https://leetcode.com/problems/two-sum/",
                         "difficulty", "EASY", "status", "SOLVED", "topic", "Arrays",
-                        "studentId", "someone-else", "classId", classIdFor(student))), student))
+                        "solvedAt", "2000-01-01", "studentId", "someone-else",
+                        "classId", classIdFor(student))), student))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.studentId").value(student.id()))
-                .andExpect(jsonPath("$.solvedAt").value(LocalDate.now().toString()));
+                .andExpect(jsonPath("$.solvedAt").value(LocalDate.now().toString()))
+                .andExpect(jsonPath("$.createdAt", notNullValue()));
 
         mvc.perform(auth(get("/api/leetcode/my"), student))
                 .andExpect(status().isOk())
@@ -55,6 +57,21 @@ class LeetCodeIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.problemName").value("Two Sum II"))
                 .andExpect(jsonPath("$.status").value("ATTEMPTED"))
                 .andExpect(jsonPath("$.solvedAt").doesNotExist());
+    }
+
+    @Test
+    void updatingSolvedEntryWithoutSolvedDatePreservesItsOriginalDate() throws Exception {
+        Account student = registerStudent();
+        String id = createLeetCode(student, "Two Sum");
+        String originalSolvedAt = read(mvc.perform(auth(get("/api/leetcode/my"), student))
+                .andExpect(status().isOk())
+                .andReturn()).get(0).get("solvedAt").asText();
+        Map<String, Object> solvedUpdate = Map.of(
+                "problemName", "Two Sum Updated", "difficulty", "EASY", "status", "SOLVED", "topic", "Arrays");
+
+        mvc.perform(auth(withJson(put("/api/leetcode/" + id), solvedUpdate), student))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.solvedAt").value(originalSolvedAt));
     }
 
     @Test

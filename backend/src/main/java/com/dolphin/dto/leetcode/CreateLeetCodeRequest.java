@@ -4,7 +4,6 @@ import com.dolphin.model.Difficulty;
 import com.dolphin.model.LeetCodeStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -12,7 +11,8 @@ import java.time.LocalDate;
 
 /**
  * studentId is deliberately absent: the owner always comes from the authenticated student. classId must be a class
- * the student is enrolled in.
+ * the student is enrolled in. solvedAt remains accepted for compatibility with existing clients, but is ignored;
+ * the server sets the solved date when creating an entry.
  */
 public record CreateLeetCodeRequest(
         @NotBlank(message = "Problem name is required")
@@ -32,7 +32,6 @@ public record CreateLeetCodeRequest(
         @Size(max = 60, message = "Topic must be at most 60 characters")
         String topic,
 
-        @PastOrPresent(message = "Solved date cannot be in the future")
         LocalDate solvedAt,
 
         @NotBlank(message = "Class is required")

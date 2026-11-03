@@ -29,7 +29,7 @@ public final class LeetCodeMapper {
         entry.setDifficulty(request.difficulty());
         entry.setStatus(request.status());
         entry.setTopic(trimToNull(request.topic()));
-        entry.setSolvedAt(resolveSolvedAt(request.status(), request.solvedAt(), null, now));
+        entry.setSolvedAt(resolveSolvedAt(request.status(), null, null, now));
         entry.setCreatedAt(now);
         entry.setUpdatedAt(now);
         return entry;
