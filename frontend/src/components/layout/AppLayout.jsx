@@ -25,7 +25,7 @@ export default function AppLayout() {
   const isMobile = () => window.matchMedia('(max-width: 760px)').matches;
   const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const cancelFrame = () => {
-    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
   };
 
@@ -90,6 +90,7 @@ export default function AppLayout() {
     const destinationUrl = new URL(to, window.location.origin);
     if (`${destinationUrl.pathname}${destinationUrl.search}` === `${location.pathname}${location.search}`) return false;
 
+    const width = stageRef.current.clientWidth;
     const ghost = pageRef.current.cloneNode(true);
     ghost.classList.add('mobile-transition-ghost');
     pageRef.current.classList.add('mobile-transition-active');
@@ -97,7 +98,7 @@ export default function AppLayout() {
     ghost.inert = true;
     ghost.removeAttribute('id');
     ghost.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
-    ghost.style.width = `${stageRef.current.clientWidth}px`;
+    ghost.style.width = `${width}px`;
     ghost.style.transform = `translate3d(${offset}px, 0, 0)`;
     stageRef.current.append(ghost);
 
@@ -107,7 +108,7 @@ export default function AppLayout() {
       destination: destinationUrl.pathname,
       destinationSearch: destinationUrl.search,
       direction,
-      width: stageRef.current.clientWidth,
+      width,
       ghost,
       phase: mode,
       offset,
@@ -235,11 +236,13 @@ export default function AppLayout() {
 
     if (gesture.mode === 'drag' && gesture.transition && transitionRef.current === gesture.transition) {
       gesture.transition.offset = deltaX;
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
-      frameRef.current = requestAnimationFrame(() => {
-        frameRef.current = null;
-        updateDragPosition(gesture.transition, deltaX);
-      });
+      if (frameRef.current === null) {
+        frameRef.current = requestAnimationFrame(() => {
+          frameRef.current = null;
+          if (transitionRef.current !== gesture.transition || gesture.transition.phase !== 'drag') return;
+          updateDragPosition(gesture.transition, gesture.transition.offset);
+        });
+      }
     }
   };
 
