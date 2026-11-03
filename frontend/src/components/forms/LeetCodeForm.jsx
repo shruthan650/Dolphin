@@ -1,18 +1,15 @@
 import Button from '../common/Button';
 import Input from '../common/Input';
-import { validateOptionalUrl } from '../../utils/validation';
 import FormAlert from './FormAlert';
 import ClassSelect from './ClassSelect';
 import { useForm } from './useForm';
 
-const EMPTY = { problemName: '', problemUrl: '', difficulty: 'EASY', status: 'SOLVED', topic: '', classId: '' };
+const EMPTY = { problemName: '', difficulty: 'EASY', status: 'SOLVED', topic: '', classId: '' };
 
 function validate(values) {
   const errors = {};
   if (!values.problemName.trim()) errors.problemName = 'Problem name is required';
   if (!values.classId) errors.classId = 'Choose the class this problem belongs to';
-  const url = validateOptionalUrl(values.problemUrl, 'Problem URL');
-  if (url) errors.problemUrl = url;
   return errors;
 }
 
@@ -21,7 +18,6 @@ export default function LeetCodeForm({ initialValues, classes = [], submitLabel 
   const start = initialValues
     ? {
         problemName: initialValues.problemName ?? '',
-        problemUrl: initialValues.problemUrl ?? '',
         difficulty: initialValues.difficulty ?? 'EASY',
         status: initialValues.status ?? 'SOLVED',
         topic: initialValues.topic ?? '',
@@ -31,7 +27,6 @@ export default function LeetCodeForm({ initialValues, classes = [], submitLabel 
   const { values, bind, handleSubmit, submitting, formError } = useForm(start, validate, (v) =>
     onSubmit({
       problemName: v.problemName.trim(),
-      problemUrl: v.problemUrl.trim(),
       difficulty: v.difficulty,
       status: v.status,
       topic: v.topic.trim(),
@@ -44,7 +39,6 @@ export default function LeetCodeForm({ initialValues, classes = [], submitLabel 
       <FormAlert message={formError} />
       <ClassSelect classes={classes} {...bind('classId')} />
       <Input label="Problem name" placeholder="Two Sum" required maxLength={150} {...bind('problemName')} />
-      <Input label="Problem URL" type="url" placeholder="https://leetcode.com/problems/two-sum/" {...bind('problemUrl')} />
       <Input as="select" label="Difficulty" required {...bind('difficulty')}>
         <option value="EASY">Easy</option>
         <option value="MEDIUM">Medium</option>

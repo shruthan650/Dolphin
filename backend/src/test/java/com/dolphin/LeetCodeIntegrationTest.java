@@ -1,6 +1,7 @@
 package com.dolphin;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -57,6 +58,32 @@ class LeetCodeIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.problemName").value("Two Sum II"))
                 .andExpect(jsonPath("$.status").value("ATTEMPTED"))
                 .andExpect(jsonPath("$.solvedAt").doesNotExist());
+    }
+
+    @Test
+    void creatingWithoutProblemUrlAndUpdatingExistingUrlPreservesStoredUrl() throws Exception {
+        Account student = registerStudent();
+        String classId = classIdFor(student);
+        String problemUrl = "https://leetcode.com/problems/two-sum/";
+        MvcResult created = mvc.perform(auth(withJson(post("/api/leetcode"), Map.of(
+                        "problemName", "Two Sum", "problemUrl", problemUrl,
+                        "difficulty", "EASY", "status", "SOLVED", "classId", classId)), student))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.problemUrl").value(problemUrl))
+                .andReturn();
+        String id = read(created).get("id").asText();
+
+        mvc.perform(auth(withJson(put("/api/leetcode/" + id), update), student))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.problemName").value("Two Sum II"))
+                .andExpect(jsonPath("$.problemUrl").value(problemUrl));
+
+        mvc.perform(auth(withJson(post("/api/leetcode"), Map.of(
+                        "problemName", "Second problem", "difficulty", "MEDIUM", "status", "SOLVED",
+                        "classId", classId)), student))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.problemName").value("Second problem"))
+                .andExpect(jsonPath("$.problemUrl").doesNotExist());
     }
 
     @Test

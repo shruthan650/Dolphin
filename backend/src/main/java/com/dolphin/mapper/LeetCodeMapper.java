@@ -37,7 +37,9 @@ public final class LeetCodeMapper {
 
     public static void applyUpdate(LeetCodeEntry entry, UpdateLeetCodeRequest request, Instant now) {
         entry.setProblemName(request.problemName().trim());
-        entry.setProblemUrl(trimToNull(request.problemUrl()));
+        if (request.problemUrl() != null) {
+            entry.setProblemUrl(trimToNull(request.problemUrl()));
+        }
         entry.setDifficulty(request.difficulty());
         entry.setStatus(request.status());
         entry.setTopic(trimToNull(request.topic()));
