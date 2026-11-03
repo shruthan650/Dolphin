@@ -2794,11 +2794,6 @@ th.cell-num {
 
 /* ---------- Mobile app navigation ---------- */
 
-.mobile-transition-stage,
-.mobile-transition-page {
-  display: contents;
-}
-
 .mobile-bottom-nav,
 .mobile-quick-actions {
   display: none;
@@ -2813,36 +2808,6 @@ th.cell-num {
 
   .app-content {
     padding-bottom: calc(120px + env(safe-area-inset-bottom));
-    touch-action: pan-y;
-  }
-
-  .mobile-transition-stage,
-  .mobile-transition-page {
-    position: relative;
-    display: flex;
-    flex: 1 0 auto;
-    min-width: 0;
-    flex-direction: column;
-    gap: inherit;
-  }
-
-  .mobile-transition-stage {
-    overflow-x: clip;
-  }
-
-  .mobile-transition-page.mobile-transition-active {
-    will-change: transform;
-    pointer-events: none;
-  }
-
-  .mobile-transition-ghost {
-    position: absolute;
-    inset: 0 auto auto 0;
-    z-index: 1;
-    min-height: 100%;
-    pointer-events: none;
-    will-change: transform;
-    background: var(--bg);
   }
 
   .mobile-hide-create-action {

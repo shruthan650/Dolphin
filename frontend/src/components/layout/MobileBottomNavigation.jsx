@@ -22,13 +22,9 @@ const NAVIGATION = {
   ],
 };
 
-export default function MobileBottomNavigation({ role, onNavigate }) {
+export default function MobileBottomNavigation({ role }) {
   const location = useLocation();
   const items = NAVIGATION[role] || [];
-  const activeIndex = items.findIndex((item) => {
-    const href = item.to.split('?')[0];
-    return location.pathname === href || location.pathname.startsWith(`${href}/`);
-  });
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
@@ -43,10 +39,6 @@ export default function MobileBottomNavigation({ role, onNavigate }) {
             to={item.to}
             className={`mobile-nav-item ${active ? 'active' : ''}`}
             aria-current={active ? 'page' : undefined}
-            onClick={(event) => {
-              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-              if (onNavigate?.(item.to, index > activeIndex ? 1 : -1)) event.preventDefault();
-            }}
           >
             <Icon name={item.icon} size={20} />
             <span>{item.label}</span>
