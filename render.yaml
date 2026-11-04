@@ -22,12 +22,11 @@ services:
         sync: false
       - key: CLOUDFLARE_API_TOKEN
         sync: false
-      # Admin login, used only to create the admin when the database has no admin yet.
+      # Required only when bootstrapping a new, empty database.
       - key: ADMIN_EMAIL
-        value: admin@dolphin.com
+        sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      # Your Vercel URL(s), comma-separated; wildcards allowed, e.g.
-      # https://dolphin.vercel.app,https://dolphin-*.vercel.app
+      # Exact frontend origin(s), comma-separated; wildcard patterns are rejected.
       - key: CORS_ALLOWED_ORIGINS
         sync: false

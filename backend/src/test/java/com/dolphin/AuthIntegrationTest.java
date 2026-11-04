@@ -191,7 +191,7 @@ class AuthIntegrationTest extends IntegrationTestSupport {
 
         mvc.perform(withJson(post("/api/auth/login"), Map.of("email", teacher.email(), "password", PASSWORD)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message", containsString("deactivated")));
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
         mvc.perform(auth(get("/api/teacher/dashboard"), teacher))
                 .andExpect(status().isUnauthorized());
     }

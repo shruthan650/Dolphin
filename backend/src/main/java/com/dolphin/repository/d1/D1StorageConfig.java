@@ -98,6 +98,11 @@ public class D1StorageConfig {
             log.info("Cloudflare D1 migration: added {}.{}", m.table(), m.column());
         }
         d1Client.batch(MIGRATED_INDEXES.stream().map(sql -> new D1Client.D1Statement(sql, List.of())).toList());
+        d1Client.execute("""
+                INSERT OR IGNORE INTO system_state (state_key, state_value)
+                SELECT ?, ?
+                WHERE EXISTS (SELECT 1 FROM users)
+                """, "admin_bootstrap_completed", "true");
     }
 
     static List<String> loadSchema() throws IOException {

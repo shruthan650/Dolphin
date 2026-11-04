@@ -79,7 +79,7 @@ class CloudflareD1ClientTest {
     }
 
     @Test
-    void apiErrorsAreReportedWithCloudflaresMessage() {
+    void apiErrorsDoNotExposeCloudflareOrSqlDetails() {
         server.expect(requestTo(URL))
                 .andRespond(withStatus(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body("""
                         {"success": false, "result": [], "errors": [{"code": 7500, "message": "no such table: users"}]}
@@ -88,7 +88,7 @@ class CloudflareD1ClientTest {
         assertThatThrownBy(() -> client.query("SELECT * FROM users"))
                 .isInstanceOf(D1Exception.class)
                 .hasMessageContaining("HTTP 400")
-                .hasMessageContaining("no such table: users");
+                .hasMessageNotContaining("no such table: users");
     }
 
     @Test
@@ -97,8 +97,6 @@ class CloudflareD1ClientTest {
         assertThat(CloudflareD1Client.clean("\"cfat_abc\"", "CLOUDFLARE_API_TOKEN")).isEqualTo("cfat_abc");
         assertThat(CloudflareD1Client.clean("CLOUDFLARE_API_TOKEN=cfat_abc", "CLOUDFLARE_API_TOKEN"))
                 .isEqualTo("cfat_abc");
-        assertThat(CloudflareD1Client.fingerprint("cfat_abcdef")).startsWith("cfat_… (11 chars, sha256 ")
-                .doesNotContain("abcdef");
     }
 
     @Test

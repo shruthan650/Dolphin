@@ -12,13 +12,9 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +43,7 @@ public class CloudflareD1Client implements D1Client {
         String account = clean(accountId, "CLOUDFLARE_ACCOUNT_ID");
         String database = clean(databaseId, "CLOUDFLARE_D1_DATABASE_ID");
         String token = clean(apiToken, "CLOUDFLARE_API_TOKEN");
-        log.info("Cloudflare D1: account {}, database {}, API token {}", account, database, fingerprint(token));
+        log.info("Cloudflare D1 client initialized");
         this.restClient = builder
                 .baseUrl(API_BASE + "/accounts/" + account + "/d1/database/" + database + "/query")
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -73,17 +69,6 @@ public class CloudflareD1Client implements D1Client {
             cleaned = cleaned.substring(1, cleaned.length() - 1).trim();
         }
         return cleaned;
-    }
-
-    /** Identifies a token in logs without revealing it: prefix, length and a short SHA-256. */
-    static String fingerprint(String token) {
-        try {
-            byte[] hash = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
-            String prefix = token.substring(0, Math.min(5, token.length()));
-            return prefix + "… (" + token.length() + " chars, sha256 " + HexFormat.of().formatHex(hash, 0, 4) + ")";
-        } catch (NoSuchAlgorithmException ex) {
-            return token.length() + " chars";
-        }
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(Duration timeout) {
@@ -117,20 +102,14 @@ public class CloudflareD1Client implements D1Client {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (RestClientResponseException ex) {
-            String raw = ex.getResponseBodyAsString();
-            String reason = errorMessages(readQuietly(raw));
-            if (reason == null) {
-                reason = raw.isBlank() ? ex.getStatusText() : raw.substring(0, Math.min(300, raw.length()));
-            }
             String hint = ex.getStatusCode().value() == 401 || ex.getStatusCode().value() == 403
                     ? " - check CLOUDFLARE_API_TOKEN (needs D1 Edit) and CLOUDFLARE_ACCOUNT_ID" : "";
-            throw new D1Exception("D1 request failed (HTTP " + ex.getStatusCode().value() + "): " + reason + hint);
+            throw new D1Exception("D1 request failed (HTTP " + ex.getStatusCode().value() + ")" + hint);
         } catch (RestClientException ex) {
-            throw new D1Exception("Unable to reach Cloudflare D1: " + ex.getMessage(), ex);
+            throw new D1Exception("Unable to reach Cloudflare D1");
         }
         if (response == null || !response.path("success").asBoolean(false)) {
-            String reason = errorMessages(response);
-            throw new D1Exception("D1 query failed: " + (reason == null ? "unknown error" : reason));
+            throw new D1Exception("D1 query failed");
         }
         return response.path("result");
     }
@@ -144,21 +123,4 @@ public class CloudflareD1Client implements D1Client {
         return statement;
     }
 
-    private JsonNode readQuietly(String body) {
-        try {
-            return objectMapper.readTree(body);
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    /** @return Cloudflare's error messages, or null when the response carries none */
-    private static String errorMessages(JsonNode response) {
-        if (response == null || !response.path("errors").isArray() || response.path("errors").isEmpty()) {
-            return null;
-        }
-        List<String> messages = new ArrayList<>();
-        response.path("errors").forEach(e -> messages.add(e.path("message").asText(e.toString())));
-        return String.join("; ", messages);
-    }
 }

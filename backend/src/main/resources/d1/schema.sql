@@ -21,6 +21,18 @@ CREATE TABLE IF NOT EXISTS users (
 );
 CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
 
+CREATE TABLE IF NOT EXISTS system_state (
+    state_key   TEXT PRIMARY KEY,
+    state_value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS login_rate_limits (
+    key_hash    TEXT NOT NULL,
+    window_start INTEGER NOT NULL,
+    attempts    INTEGER NOT NULL,
+    PRIMARY KEY (key_hash, window_start)
+);
+
 CREATE TABLE IF NOT EXISTS classes (
     id         TEXT PRIMARY KEY,
     class_name TEXT NOT NULL,

@@ -3,6 +3,7 @@ package com.dolphin.config;
 import com.dolphin.model.Role;
 import com.dolphin.model.User;
 import com.dolphin.repository.UserRepository;
+import com.dolphin.validation.EmailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,9 +15,8 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 /**
- * Creates the admin account from ADMIN_EMAIL / ADMIN_PASSWORD on startup when no admin exists yet (the first run
- * against an empty database). Once it exists the admin manages their own email and password from the profile page,
- * so they are never overwritten on restart. Teachers, classes, students and their data are intentionally NOT seeded.
+ * Creates one initial admin only when explicitly configured. The durable bootstrap marker prevents recreating a
+ * deleted admin account on later restarts.
  */
 @Component
 public class DataSeeder implements ApplicationRunner {
@@ -30,8 +30,8 @@ public class DataSeeder implements ApplicationRunner {
 
     public DataSeeder(UserRepository userRepository,
                       PasswordEncoder passwordEncoder,
-                      @Value("${dolphin.admin.email}") String adminEmail,
-                      @Value("${dolphin.admin.password}") String adminPassword) {
+                      @Value("${ADMIN_EMAIL:}") String adminEmail,
+                      @Value("${ADMIN_PASSWORD:}") String adminPassword) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.adminEmail = adminEmail;
@@ -41,22 +41,37 @@ public class DataSeeder implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (userRepository.countByRole(Role.ADMIN) > 0) {
+            userRepository.markAdminBootstrapCompleted();
             return;
         }
-        if (userRepository.existsByEmail(adminEmail)) {
-            log.warn("No admin account exists, but ADMIN_EMAIL {} belongs to another account; not seeding", adminEmail);
+        if (userRepository.hasAdminBootstrapCompleted()) {
+            log.warn("Initial admin is absent after bootstrap; refusing to recreate it");
             return;
+        }
+        if (adminEmail.isBlank() || adminPassword.isBlank()) {
+            throw new IllegalStateException(
+                    "ADMIN_EMAIL and ADMIN_PASSWORD must be configured for initial admin creation");
+        }
+        if (!EmailAddress.isValid(adminEmail)) {
+            throw new IllegalStateException("ADMIN_EMAIL must be a valid email address");
+        }
+        String normalizedEmail = EmailAddress.normalize(adminEmail);
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new IllegalStateException("ADMIN_EMAIL is already assigned to a non-admin account");
         }
         Instant now = Instant.now();
         User admin = new User();
         admin.setName("Admin");
-        admin.setEmail(adminEmail.trim().toLowerCase());
+        admin.setEmail(normalizedEmail);
         admin.setPasswordHash(passwordEncoder.encode(adminPassword));
         admin.setRole(Role.ADMIN);
         admin.setActive(true);
         admin.setCreatedAt(now);
         admin.setUpdatedAt(now);
-        userRepository.save(admin);
-        log.info("Seeded development admin account: {}", admin.getEmail());
+        if (userRepository.createInitialAdmin(admin)) {
+            log.info("Created initial administrator account");
+        } else {
+            log.info("Initial administrator was already initialized by another application instance");
+        }
     }
 }

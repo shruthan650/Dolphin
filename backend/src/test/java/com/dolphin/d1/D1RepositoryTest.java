@@ -69,6 +69,35 @@ class D1RepositoryTest {
     }
 
     @Test
+    void loginRateLimitCountsAtomicallyPersistsAndResetsHashedKeys() {
+        Instant windowStart = Instant.parse("2026-06-01T10:00:00Z");
+        Instant expiredBefore = windowStart.minusSeconds(900);
+
+        assertThat(users.recordLoginAttempt("ip-hash", windowStart, expiredBefore, 2)).isTrue();
+        assertThat(users.recordLoginAttempt("ip-hash", windowStart, expiredBefore, 2)).isTrue();
+        assertThat(users.recordLoginAttempt("ip-hash", windowStart, expiredBefore, 2)).isFalse();
+        assertThat(new D1UserRepository(d1).recordLoginAttempt("ip-hash", windowStart, expiredBefore, 2)).isFalse();
+
+        users.resetLoginAttempts("ip-hash");
+        assertThat(users.recordLoginAttempt("ip-hash", windowStart, expiredBefore, 2)).isTrue();
+    }
+
+    @Test
+    void initialAdminBootstrapIsOneTimeAndDurable() {
+        User admin = user("admin@test.com", Role.ADMIN, Instant.now());
+        assertThat(users.createInitialAdmin(admin)).isTrue();
+        assertThat(users.hasAdminBootstrapCompleted()).isTrue();
+
+        D1UserRepository afterRestart = new D1UserRepository(d1);
+        assertThat(afterRestart.createInitialAdmin(user("second@test.com", Role.ADMIN, Instant.now()))).isFalse();
+        assertThat(afterRestart.findByEmail("admin@test.com")).isPresent();
+        assertThat(afterRestart.findByEmail("second@test.com")).isEmpty();
+        afterRestart.deleteById(admin.getId());
+        assertThat(afterRestart.hasAdminBootstrapCompleted()).isTrue();
+        assertThat(afterRestart.createInitialAdmin(user("replacement@test.com", Role.ADMIN, Instant.now()))).isFalse();
+    }
+
+    @Test
     void findAllByIdHandlesMoreIdsThanD1AllowsPerQueryAndKeepsOrder() {
         List<String> ids = new ArrayList<>();
         for (int i = 0; i < 150; i++) {
@@ -175,6 +204,7 @@ class D1RepositoryTest {
         assertThat(migratedEntries.findById("l1").orElseThrow().getClassId()).isEqualTo("c1");
         assertThat(migratedEntries.findById("l2").orElseThrow().getClassId()).isNull();
         User migrated = new D1UserRepository(old).findById("u1").orElseThrow();
+        assertThat(new D1UserRepository(old).hasAdminBootstrapCompleted()).isTrue();
         assertThat(migrated.getFailedLoginAttempts()).isZero();
         assertThat(migrated.getLockedUntil()).isNull();
         assertThat(migrated.getTokenVersion()).isZero();
@@ -203,7 +233,7 @@ class D1RepositoryTest {
         D1UserRepository afterRestart = new D1UserRepository(d1);
         assertThat(afterRestart.findById(id).orElseThrow().isLockedAt(now)).isTrue();
         assertThat(afterRestart.recordFailedLogin(id, now.plusSeconds(60), 3, lockUntil)).isEmpty();
-        assertThat(afterRestart.resetFailedLogins(id, lockUntil.minusSeconds(1))).isFalse();
+        assertThat(afterRestart.resetFailedLogins(id, lockUntil.minusSeconds(1))).isTrue();
 
         // Once expired, a wrong password restarts the count at 1 and a correct one resets everything
         assertThat(afterRestart.recordFailedLogin(id, lockUntil, 3, lockUntil.plusSeconds(600)))

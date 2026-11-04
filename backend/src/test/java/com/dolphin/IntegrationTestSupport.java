@@ -62,7 +62,11 @@ public abstract class IntegrationTestSupport {
     }
 
     protected String login(String email, String password) throws Exception {
-        MvcResult result = mvc.perform(withJson(post("/api/auth/login"), Map.of("email", email, "password", password)))
+        MvcResult result = mvc.perform(withJson(post("/api/auth/login"), Map.of("email", email, "password", password))
+                        .with(request -> {
+                            request.setRemoteAddr("test-login-" + UUID.randomUUID());
+                            return request;
+                        }))
                 .andExpect(status().isOk())
                 .andReturn();
         return read(result).get("token").asText();

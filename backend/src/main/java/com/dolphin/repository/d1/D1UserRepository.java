@@ -135,9 +135,9 @@ public class D1UserRepository implements UserRepository {
     public boolean resetFailedLogins(String userId, Instant now) {
         return !d1.query("""
                 UPDATE users SET failed_login_attempts = 0, locked_until = NULL
-                WHERE id = ? AND (locked_until IS NULL OR locked_until <= ?)
+                WHERE id = ?
                 RETURNING id
-                """, userId, now).isEmpty();
+                """, userId).isEmpty();
     }
 
     @Override
@@ -153,6 +153,61 @@ public class D1UserRepository implements UserRepository {
     @Override
     public long countByRole(Role role) {
         return number(d1.query("SELECT COUNT(*) AS n FROM users WHERE role = ?", role).get(0), "n");
+    }
+
+    @Override
+    public boolean hasAdminBootstrapCompleted() {
+        return !d1.query("SELECT 1 FROM system_state WHERE state_key = ?",
+                "admin_bootstrap_completed").isEmpty();
+    }
+
+    @Override
+    public void markAdminBootstrapCompleted() {
+        d1.execute("INSERT OR IGNORE INTO system_state (state_key, state_value) VALUES (?, ?)",
+                "admin_bootstrap_completed", "true");
+    }
+
+    @Override
+    public boolean createInitialAdmin(User admin) {
+        if (admin.getId() == null) {
+            admin.setId(UUID.randomUUID().toString());
+        }
+        String attemptId = UUID.randomUUID().toString();
+        d1.batch(List.of(
+                D1Client.D1Statement.of("""
+                        INSERT INTO system_state (state_key, state_value)
+                        SELECT ?, ?
+                        WHERE NOT EXISTS (SELECT 1 FROM system_state WHERE state_key = ?)
+                          AND NOT EXISTS (SELECT 1 FROM users WHERE role = ?)
+                        """, "admin_bootstrap_completed", attemptId, "admin_bootstrap_completed", Role.ADMIN),
+                D1Client.D1Statement.of("""
+                        INSERT INTO users (id, name, email, email_key, password_hash, role, github_url, leetcode_url,
+                                           active, token_version, created_at, updated_at)
+                        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                        WHERE EXISTS (SELECT 1 FROM system_state WHERE state_key = ? AND state_value = ?)
+                        """,
+                        admin.getId(), admin.getName(), admin.getEmail(), normalize(admin.getEmail()),
+                        admin.getPasswordHash(), admin.getRole(), admin.getGithubUrl(), admin.getLeetCodeUrl(),
+                        admin.isActive(), admin.getTokenVersion(), admin.getCreatedAt(), admin.getUpdatedAt(),
+                        "admin_bootstrap_completed", attemptId)));
+        return findById(admin.getId()).isPresent();
+    }
+
+    @Override
+    public boolean recordLoginAttempt(String keyHash, Instant windowStart, Instant expiredBefore, int maxAttempts) {
+        d1.execute("DELETE FROM login_rate_limits WHERE window_start < ?", expiredBefore.toEpochMilli());
+        return !d1.query("""
+                INSERT INTO login_rate_limits (key_hash, window_start, attempts)
+                VALUES (?, ?, 1)
+                ON CONFLICT (key_hash, window_start) DO UPDATE SET attempts = attempts + 1
+                WHERE login_rate_limits.attempts < ?
+                RETURNING attempts
+                """, keyHash, windowStart.toEpochMilli(), maxAttempts).isEmpty();
+    }
+
+    @Override
+    public void resetLoginAttempts(String keyHash) {
+        d1.execute("DELETE FROM login_rate_limits WHERE key_hash = ?", keyHash);
     }
 
     private static User toUser(Map<String, Object> row) {

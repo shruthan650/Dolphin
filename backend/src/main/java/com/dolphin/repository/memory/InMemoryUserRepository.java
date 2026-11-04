@@ -26,6 +26,8 @@ public class InMemoryUserRepository implements UserRepository {
 
     private final Map<String, User> users = new ConcurrentHashMap<>();
     private final Map<String, String> idByEmail = new ConcurrentHashMap<>();
+    private final Map<LoginRateLimitKey, Integer> loginAttempts = new ConcurrentHashMap<>();
+    private boolean adminBootstrapCompleted;
 
     @Override
     public Optional<User> findById(String id) {
@@ -109,6 +111,44 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public synchronized boolean hasAdminBootstrapCompleted() {
+        return adminBootstrapCompleted;
+    }
+
+    @Override
+    public synchronized void markAdminBootstrapCompleted() {
+        adminBootstrapCompleted = true;
+    }
+
+    @Override
+    public synchronized boolean createInitialAdmin(User admin) {
+        if (adminBootstrapCompleted || countByRole(Role.ADMIN) > 0) {
+            return false;
+        }
+        save(admin);
+        adminBootstrapCompleted = true;
+        return true;
+    }
+
+    @Override
+    public synchronized boolean recordLoginAttempt(String keyHash, Instant windowStart, Instant expiredBefore,
+                                                    int maxAttempts) {
+        loginAttempts.keySet().removeIf(key -> key.windowStart().isBefore(expiredBefore));
+        LoginRateLimitKey key = new LoginRateLimitKey(keyHash, windowStart);
+        int attempts = loginAttempts.getOrDefault(key, 0);
+        if (attempts >= maxAttempts) {
+            return false;
+        }
+        loginAttempts.put(key, attempts + 1);
+        return true;
+    }
+
+    @Override
+    public synchronized void resetLoginAttempts(String keyHash) {
+        loginAttempts.keySet().removeIf(key -> key.keyHash().equals(keyHash));
+    }
+
+    @Override
     public synchronized Optional<LoginAttemptState> recordFailedLogin(String userId, Instant now, int maxAttempts,
                                                                       Instant lockUntil) {
         User user = users.get(userId);
@@ -124,12 +164,15 @@ public class InMemoryUserRepository implements UserRepository {
     @Override
     public synchronized boolean resetFailedLogins(String userId, Instant now) {
         User user = users.get(userId);
-        if (user == null || user.isLockedAt(now)) {
+        if (user == null) {
             return false;
         }
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         return true;
+    }
+
+    private record LoginRateLimitKey(String keyHash, Instant windowStart) {
     }
 
     private static String normalize(String email) {

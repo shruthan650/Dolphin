@@ -15,7 +15,6 @@ import com.dolphin.model.Role;
 import com.dolphin.model.User;
 import com.dolphin.repository.UserRepository;
 import com.dolphin.validation.EmailAddress;
-import com.dolphin.repository.UserRepository.LoginAttemptState;
 import com.dolphin.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -33,75 +31,54 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final String INVALID_CREDENTIALS = "Invalid email or password";
-    private static final String LOCKED = "Too many login attempts. Please try again later.";
-    /** Consecutive wrong passwords that lock an account... */
-    static final int MAX_FAILED_ATTEMPTS = 3;
-    /** ...and for how long. It unlocks by itself afterwards. */
-    static final Duration LOCKOUT_DURATION = Duration.ofMinutes(10);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final Clock clock;
+    private final LoginRateLimiter loginRateLimiter;
     /** Used to keep login timing similar whether or not the email exists. */
     private final String dummyHash;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
-            Clock clock) {
+            Clock clock, LoginRateLimiter loginRateLimiter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.clock = clock;
+        this.loginRateLimiter = loginRateLimiter;
         this.dummyHash = passwordEncoder.encode("dolphin-dummy-password");
     }
 
-    /**
-     * Email + password login with a persisted lockout:
-     * {@value #MAX_FAILED_ATTEMPTS} consecutive wrong passwords lock
-     * the account for {@link #LOCKOUT_DURATION}, during which even the correct
-     * password is rejected. The counter and
-     * lock live in the database and change through atomic updates, so concurrent
-     * requests or several backend
-     * instances cannot get extra attempts; only a successful login resets them.
-     */
-    public LoginResponse login(LoginRequest request) {
+    /** Uses shared IP and account/IP throttles. Forwarded IP headers are deliberately ignored. */
+    public LoginResponse login(LoginRequest request, String remoteAddress) {
         if (!EmailAddress.isValid(request.email())) {
             throw new BadRequestException("Email must be valid");
         }
         String email = EmailAddress.normalize(request.email());
+        if (!loginRateLimiter.allow(email, remoteAddress)) {
+            log.warn("Login request throttled");
+            throw new TooManyAttemptsException(INVALID_CREDENTIALS);
+        }
         Optional<User> found = userRepository.findByEmail(email);
         if (found.isEmpty()) {
             passwordEncoder.matches(request.password(), dummyHash);
-            log.warn("Authentication failed for an unregistered email");
+            log.warn("Authentication failed");
             throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
         User user = found.get();
-        Instant now = clock.instant();
-        if (user.isLockedAt(now)) {
-            passwordEncoder.matches(request.password(), dummyHash);
-            log.warn("Authentication rejected for locked account {}", user.getId());
-            throw new TooManyAttemptsException(LOCKED);
-        }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            Optional<LoginAttemptState> state = userRepository.recordFailedLogin(user.getId(), now,
-                    MAX_FAILED_ATTEMPTS, now.plus(LOCKOUT_DURATION));
-            if (state.isEmpty() || state.get().lockedUntil() != null) {
-                log.warn("Account {} locked after repeated failed login attempts", user.getId());
-                throw new TooManyAttemptsException(LOCKED);
-            }
-            log.warn("Authentication failed for user {}", user.getId());
+            log.warn("Authentication failed");
             throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
-        // Fails if a concurrent request locked the account after it was read above.
-        if (!userRepository.resetFailedLogins(user.getId(), now)) {
-            log.warn("Login for user {} was rejected due to a concurrent lockout", user.getId());
-            throw new TooManyAttemptsException(LOCKED);
-        }
         if (!user.isActive()) {
-            log.warn("Authentication denied for inactive account {}", user.getId());
-            throw new UnauthorizedException("This account has been deactivated. Contact an administrator.");
+            log.warn("Authentication denied for inactive account");
+            throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
-        log.info("User {} authenticated successfully", user.getId());
+        Instant now = clock.instant();
+        userRepository.resetFailedLogins(user.getId(), now);
+        loginRateLimiter.resetAccountIp(email, remoteAddress);
+        log.info("User authenticated successfully");
         return toLoginResponse(user);
     }
 

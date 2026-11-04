@@ -34,6 +34,16 @@ public interface UserRepository {
 
     long countByRole(Role role);
 
+    boolean hasAdminBootstrapCompleted();
+
+    void markAdminBootstrapCompleted();
+
+    boolean createInitialAdmin(User admin);
+
+    boolean recordLoginAttempt(String keyHash, Instant windowStart, Instant expiredBefore, int maxAttempts);
+
+    void resetLoginAttempts(String keyHash);
+
     /**
      * Atomically records one wrong password, unless the account is locked at {@code now}. A lockout that has already
      * expired restarts the count at 1. When the count reaches {@code maxAttempts} the account is locked until
@@ -43,12 +53,7 @@ public interface UserRepository {
      */
     Optional<LoginAttemptState> recordFailedLogin(String userId, Instant now, int maxAttempts, Instant lockUntil);
 
-    /**
-     * Atomically clears the failed-attempt count and lockout after a correct password, unless the account is locked
-     * at {@code now} (e.g. a concurrent request has just locked it).
-     *
-     * @return false when the account is currently locked (or does not exist)
-     */
+    /** Clears legacy per-account lockout state; new login throttling uses the shared login-rate-limit store. */
     boolean resetFailedLogins(String userId, Instant now);
 
     /** Lockout state after a failed login. lockedUntil is null unless this attempt locked the account. */
