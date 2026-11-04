@@ -1,11 +1,11 @@
 package com.dolphin.dto.auth;
 
-import jakarta.validation.constraints.Email;
+import com.dolphin.validation.ValidEmailAddress;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
         @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
+        @ValidEmailAddress
         String email,
 
         @NotBlank(message = "Password is required")

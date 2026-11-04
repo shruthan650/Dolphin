@@ -7,6 +7,7 @@ import com.dolphin.security.JwtService;
 import com.dolphin.security.JwtTestTokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Map;
 
@@ -42,6 +43,47 @@ class AuthIntegrationTest extends IntegrationTestSupport {
     void loginIsCaseInsensitiveOnEmail() throws Exception {
         mvc.perform(withJson(post("/api/auth/login"), Map.of("email", "ADMIN@Dolphin.com", "password", ADMIN_PASSWORD)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void registrationTrimsAndNormalizesCollegeEmailAndLoginAcceptsItsCaseVariants() throws Exception {
+        String email = "  4MT24CS001@MITE.AC.IN  ";
+        MvcResult result = mvc.perform(withJson(post("/api/auth/register"), Map.of(
+                        "name", "College Student", "email", email, "password", PASSWORD,
+                        "confirmPassword", PASSWORD, "githubUrl", GITHUB_URL, "leetCodeUrl", LEETCODE_URL)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("4mt24cs001@mite.ac.in"))
+                .andReturn();
+
+        mvc.perform(withJson(post("/api/auth/login"), Map.of(
+                        "email", email, "password", PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(read(result).get("userId").asText()));
+    }
+
+    @Test
+    void registrationRejectsInvalidCollegeEmailAndDuplicateEmailsRegardlessOfCase() throws Exception {
+        Map<String, Object> registration = Map.of(
+                "name", "College Student", "password", PASSWORD, "confirmPassword", PASSWORD,
+                "githubUrl", GITHUB_URL, "leetCodeUrl", LEETCODE_URL);
+        for (String invalidEmail : new String[] {
+                "4MT24C001@mite.ac.in", "4MT24CS001@mite.com", "missing-domain"
+        }) {
+            Map<String, Object> body = new java.util.HashMap<>(registration);
+            body.put("email", invalidEmail);
+            mvc.perform(withJson(post("/api/auth/register"), body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors.email").exists());
+        }
+
+        String email = uniqueEmail("case");
+        Map<String, Object> first = new java.util.HashMap<>(registration);
+        first.put("email", email);
+        mvc.perform(withJson(post("/api/auth/register"), first)).andExpect(status().isCreated());
+
+        Map<String, Object> duplicate = new java.util.HashMap<>(registration);
+        duplicate.put("email", email.toUpperCase());
+        mvc.perform(withJson(post("/api/auth/register"), duplicate)).andExpect(status().isConflict());
     }
 
     @Test

@@ -82,7 +82,7 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.message").value("Current password is incorrect"));
 
         JsonNode response = read(mvc.perform(auth(withJson(put("/api/users/me/email"), Map.of(
-                        "newEmail", newEmail.toUpperCase(), "currentPassword", PASSWORD)), student))
+                        "newEmail", "  " + newEmail.toUpperCase() + " ", "currentPassword", PASSWORD)), student))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(newEmail))
                 .andReturn());

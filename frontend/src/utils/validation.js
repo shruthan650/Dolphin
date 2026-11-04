@@ -1,12 +1,21 @@
 // Client-side checks for fast feedback only. The backend re-validates everything.
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const COLLEGE_EMAIL_RE = /^[0-9]MT[0-9]{2}[A-Z]{2}[0-9]{3}@mite\.ac\.in$/i;
+const USN_LOCAL_PART_RE = /^[0-9]MT[0-9]{2}[A-Z]{2}[0-9]{3}$/i;
+const GENERIC_EMAIL_RE = /^(?=.{1,254}$)(?=.{1,64}@)[A-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$/i;
 const URL_RE = /^https?:\/\/\S+$/i;
 // Kept in sync with ProfileLinkPatterns on the backend.
 const GITHUB_PROFILE_RE = /^https?:\/\/(www\.)?github\.com\/[A-Za-z0-9][A-Za-z0-9-]{0,38}\/?$/;
 const LEETCODE_PROFILE_RE = /^https?:\/\/(www\.)?leetcode\.(com|cn)\/(u\/)?[A-Za-z0-9_.-]{1,50}\/?$/;
 
-export const isEmail = (value) => EMAIL_RE.test(value.trim());
+export const isEmail = (value) => {
+  const email = value.trim();
+  if (!GENERIC_EMAIL_RE.test(email)) return false;
+  const [localPart, domain] = email.split('@');
+  if (domain.toLowerCase() === 'mite.ac.in') return COLLEGE_EMAIL_RE.test(email);
+  return !USN_LOCAL_PART_RE.test(localPart);
+};
+export const normalizeEmail = (value) => value.trim().toLowerCase();
 export const isHttpUrl = (value) => URL_RE.test(value.trim());
 
 /** Validates name/email/password/confirmPassword account forms. */

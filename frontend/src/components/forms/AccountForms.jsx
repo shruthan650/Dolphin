@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { getErrorMessage, getFieldErrors } from '../../services/api';
 import { userService } from '../../services/userService';
-import { isEmail } from '../../utils/validation';
+import { isEmail, normalizeEmail } from '../../utils/validation';
 import FormAlert from './FormAlert';
 import { useForm } from './useForm';
 
@@ -84,7 +84,7 @@ export function ChangeEmailForm() {
       return errors;
     },
     async (v) => {
-      await changeEmail({ newEmail: v.newEmail.trim(), currentPassword: v.currentPassword });
+      await changeEmail({ newEmail: normalizeEmail(v.newEmail), currentPassword: v.currentPassword });
       setForm({ newEmail: '', currentPassword: '' });
       toast.success('Email changed. Use the new address the next time you sign in.');
     },

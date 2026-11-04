@@ -9,7 +9,7 @@ import ProfileLinksForm, { ProfileLinkFields } from '../../components/forms/Prof
 import { useForm } from '../../components/forms/useForm';
 import { useAuth } from '../../hooks/useAuth';
 import { ROLE_HOME } from '../../utils/format';
-import { isEmail, needsProfileLinks, validateAccount, validateProfileLinks } from '../../utils/validation';
+import { isEmail, needsProfileLinks, normalizeEmail, validateAccount, validateProfileLinks } from '../../utils/validation';
 
 function validateLogin(values) {
   const errors = {};
@@ -31,12 +31,12 @@ function destinationFor(role, from) {
 function SignInForm({ onSuccess }) {
   const { login } = useAuth();
   const { bind, handleSubmit, submitting, formError } = useForm({ email: '', password: '' }, validateLogin, async (v) =>
-    onSuccess(await login(v.email.trim(), v.password)),
+    onSuccess(await login(normalizeEmail(v.email), v.password)),
   );
   return (
     <form onSubmit={handleSubmit} noValidate className="form">
       <FormAlert message={formError} />
-      <Input label="Email" type="email" autoComplete="email" placeholder="you@college.edu" {...bind('email')} />
+      <Input label="Email" type="email" autoComplete="email" placeholder="4MT24CS001@mite.ac.in" {...bind('email')} />
       <Input label="Password" type="password" autoComplete="current-password" placeholder="••••••••" {...bind('password')} />
       <Button type="submit" loading={submitting} className="btn-block">
         Sign in
@@ -55,7 +55,7 @@ function RegisterForm({ onSuccess }) {
         await register({
           ...v,
           name: v.name.trim(),
-          email: v.email.trim(),
+          email: normalizeEmail(v.email),
           githubUrl: v.githubUrl.trim(),
           leetCodeUrl: v.leetCodeUrl.trim(),
         }),
@@ -65,7 +65,7 @@ function RegisterForm({ onSuccess }) {
     <form onSubmit={handleSubmit} noValidate className="form">
       <FormAlert message={formError} />
       <Input label="Full name" autoComplete="name" placeholder="Rahul Sharma" {...bind('name')} />
-      <Input label="Email" type="email" autoComplete="email" placeholder="you@college.edu" {...bind('email')} />
+      <Input label="Email" type="email" autoComplete="email" placeholder="4MT24CS001@mite.ac.in or student@gmail.com" {...bind('email')} />
       <Input label="Password" type="password" autoComplete="new-password" hint="At least 8 characters" {...bind('password')} />
       <Input label="Confirm password" type="password" autoComplete="new-password" {...bind('confirmPassword')} />
       <ProfileLinkFields bind={bind} />

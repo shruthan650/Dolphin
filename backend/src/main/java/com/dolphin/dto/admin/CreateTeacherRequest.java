@@ -1,6 +1,6 @@
 package com.dolphin.dto.admin;
 
-import jakarta.validation.constraints.Email;
+import com.dolphin.validation.ValidEmailAddress;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -11,7 +11,7 @@ public record CreateTeacherRequest(
         String name,
 
         @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
+        @ValidEmailAddress
         String email,
 
         @NotBlank(message = "Password is required")

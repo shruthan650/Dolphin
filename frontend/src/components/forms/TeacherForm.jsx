@@ -1,6 +1,6 @@
 import Button from '../common/Button';
 import Input from '../common/Input';
-import { validateAccount } from '../../utils/validation';
+import { normalizeEmail, validateAccount } from '../../utils/validation';
 import FormAlert from './FormAlert';
 import { useForm } from './useForm';
 
@@ -8,7 +8,9 @@ const EMPTY = { name: '', email: '', password: '', confirmPassword: '' };
 
 /** Admin "create teacher" form. There is deliberately no role selector: the backend always creates a TEACHER. */
 export default function TeacherForm({ onSubmit, onCancel }) {
-  const { bind, handleSubmit, submitting, formError } = useForm(EMPTY, validateAccount, onSubmit);
+  const { bind, handleSubmit, submitting, formError } = useForm(EMPTY, validateAccount, (values) =>
+    onSubmit({ ...values, email: normalizeEmail(values.email) }),
+  );
 
   return (
     <form onSubmit={handleSubmit} noValidate className="form">

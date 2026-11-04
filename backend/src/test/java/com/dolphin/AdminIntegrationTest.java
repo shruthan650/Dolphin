@@ -68,6 +68,14 @@ class AdminIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void teacherEmailIsTrimmedAndNormalized() throws Exception {
+        mvc.perform(auth(withJson(post("/api/admin/teachers"),
+                        teacherRequest("  4MT24AE001@MITE.AC.IN  ")), admin()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("4mt24ae001@mite.ac.in"));
+    }
+
+    @Test
     void invalidTeacherRequestReturnsFieldErrors() throws Exception {
         mvc.perform(auth(withJson(post("/api/admin/teachers"), Map.of(
                         "name", "", "email", "not-an-email", "password", "short", "confirmPassword", "short")), admin()))

@@ -14,6 +14,7 @@ import com.dolphin.mapper.UserMapper;
 import com.dolphin.model.Role;
 import com.dolphin.model.User;
 import com.dolphin.repository.UserRepository;
+import com.dolphin.validation.EmailAddress;
 import com.dolphin.repository.UserRepository.LoginAttemptState;
 import com.dolphin.security.JwtService;
 import org.slf4j.Logger;
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -65,7 +65,11 @@ public class AuthService {
      * instances cannot get extra attempts; only a successful login resets them.
      */
     public LoginResponse login(LoginRequest request) {
-        Optional<User> found = userRepository.findByEmail(request.email());
+        if (!EmailAddress.isValid(request.email())) {
+            throw new BadRequestException("Email must be valid");
+        }
+        String email = EmailAddress.normalize(request.email());
+        Optional<User> found = userRepository.findByEmail(email);
         if (found.isEmpty()) {
             passwordEncoder.matches(request.password(), dummyHash);
             log.warn("Authentication failed for an unregistered email");
@@ -137,7 +141,10 @@ public class AuthService {
         if (!password.equals(confirmPassword)) {
             throw new BadRequestException("Passwords do not match");
         }
-        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        if (!EmailAddress.isValid(email)) {
+            throw new BadRequestException("Email must be valid");
+        }
+        String normalizedEmail = EmailAddress.normalize(email);
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new ConflictException("An account with this email already exists");
         }

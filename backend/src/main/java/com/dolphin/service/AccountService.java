@@ -14,13 +14,13 @@ import com.dolphin.mapper.UserMapper;
 import com.dolphin.model.Role;
 import com.dolphin.model.User;
 import com.dolphin.repository.UserRepository;
+import com.dolphin.validation.EmailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Locale;
 
 /**
  * Self-service account management. Every method acts on the authenticated
@@ -80,7 +80,10 @@ public class AccountService {
     public LoginResponse changeEmail(String userId, ChangeEmailRequest request) {
         User user = require(userId);
         verifyPassword(user, request.currentPassword());
-        String newEmail = request.newEmail().trim().toLowerCase(Locale.ROOT);
+        if (!EmailAddress.isValid(request.newEmail())) {
+            throw new BadRequestException("Email must be valid");
+        }
+        String newEmail = EmailAddress.normalize(request.newEmail());
         if (newEmail.equals(user.getEmail())) {
             throw new BadRequestException("This is already your email address");
         }
