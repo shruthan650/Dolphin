@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
@@ -8,18 +7,7 @@ import MobileQuickActions from './MobileQuickActions';
 
 export default function AppLayout() {
   const { user, role, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape') setMenuOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [menuOpen]);
 
   const handleLogout = () => {
     logout();
@@ -28,15 +16,9 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell">
-      <Sidebar
-        role={role}
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        onLogout={handleLogout}
-        location={location}
-      />
+      <Sidebar role={role} />
       <div className="app-main">
-        <Topbar user={user} onMenu={() => setMenuOpen(true)} menuOpen={menuOpen} />
+        <Topbar user={user} onLogout={handleLogout} />
         <main className="app-content" id="main">
           <Outlet />
         </main>

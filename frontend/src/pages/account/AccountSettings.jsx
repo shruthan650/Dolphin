@@ -1,6 +1,4 @@
-import { useNavigate } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
-import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import PageHeader from '../../components/common/PageHeader';
 import {
@@ -14,12 +12,7 @@ import { initials } from '../../utils/format';
 
 /** Name, email, password and (except for admins) account deletion. Shared by every role. */
 export function AccountSections() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
+  const { user } = useAuth();
 
   return (
     <>
@@ -33,13 +26,6 @@ export function AccountSections() {
       </div>
       <Card title="Password" subtitle="Use at least 8 characters">
         <ChangePasswordForm />
-      </Card>
-      <Card title="Logout" subtitle="Sign out of your Dolphin account on this device.">
-        <div className="logout-section">
-          <Button icon="logout" onClick={handleLogout} className="logout-button">
-            Logout
-          </Button>
-        </div>
       </Card>
       {user?.role !== 'ADMIN' && (
         <Card title="Danger zone" className="card-danger">
