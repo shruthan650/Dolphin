@@ -33,7 +33,7 @@ export default function Sidebar({ role, open, onClose, onLogout, location }) {
   return (
     <>
       <div className={`sidebar-overlay ${open ? 'visible' : ''}`} onClick={onClose} aria-hidden="true" />
-      <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Main navigation">
+      <aside id="app-navigation-drawer" className={`sidebar ${open ? 'open' : ''}`} aria-label="Main navigation">
         <div className="sidebar-brand">
           <img src="/favicon.svg" alt="" width="32" height="32" />
           <div>

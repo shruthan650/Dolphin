@@ -9,12 +9,19 @@ const PROFILE_ROUTE = {
   STUDENT: '/student/profile',
 };
 
-export default function Topbar({ user, onMenu }) {
+export default function Topbar({ user, onMenu, menuOpen }) {
   const profileRoute = PROFILE_ROUTE[user?.role] || '/login';
 
   return (
     <header className="topbar">
-      <button type="button" className="topbar-menu" onClick={onMenu} aria-label="Open menu">
+      <button
+        type="button"
+        className="topbar-menu"
+        onClick={onMenu}
+        aria-label="Open navigation menu"
+        aria-expanded={menuOpen}
+        aria-controls="app-navigation-drawer"
+      >
         <Icon name="menu" size={20} />
       </button>
       <div className="topbar-spacer" />

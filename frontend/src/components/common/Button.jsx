@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Icon from './Icon';
 
 /**
- * @param {'primary'|'secondary'|'ghost'|'danger'} variant
+ * @param {'primary'|'secondary'|'dark'|'outline'|'ghost'|'danger'} variant
  * @param {'md'|'sm'} size
  * @param {string} to render as a router link
  */
