@@ -101,6 +101,7 @@
   --streak-track: #D8E4F2;
   --streak-inactive: #EFF6FD;
   --streak-accent: #0353A4;
+  --streak-current: var(--streak-text);
   --toast-bg: #12263A;
   --toast-text: #FFFFFF;
   --focus-shadow: 0 0 0 3px rgba(3, 83, 164, 0.2);
@@ -214,7 +215,8 @@
   --streak-muted: var(--text-2);
   --streak-track: #29435C;
   --streak-inactive: #1B344C;
-  --streak-accent: #B9D6F2;
+  --streak-accent: #FF9F43;
+  --streak-current: #FFB366;
   --toast-bg: #12263A;
   --toast-text: #FFFFFF;
   --focus-shadow: 0 0 0 3px rgba(185, 214, 242, 0.28);
@@ -1543,7 +1545,7 @@ textarea.field-control {
 }
 
 .streak-week-day.is-today .streak-day-marker {
-  outline: 2px solid var(--streak-text);
+  outline: 2px solid var(--streak-current);
   outline-offset: 3px;
 }
 
