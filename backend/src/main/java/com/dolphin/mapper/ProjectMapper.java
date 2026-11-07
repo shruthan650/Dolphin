@@ -24,6 +24,7 @@ public final class ProjectMapper {
         project.setGithubUrl(trimToNull(request.githubUrl()));
         project.setLiveUrl(trimToNull(request.liveUrl()));
         project.setTechnologies(cleanList(request.technologies()));
+        project.setPubliclyVisible(Boolean.TRUE.equals(request.publiclyVisible()));
         project.setCreatedAt(now);
         project.setUpdatedAt(now);
         return project;
@@ -35,6 +36,9 @@ public final class ProjectMapper {
         project.setGithubUrl(trimToNull(request.githubUrl()));
         project.setLiveUrl(trimToNull(request.liveUrl()));
         project.setTechnologies(cleanList(request.technologies()));
+        if (request.publiclyVisible() != null) {
+            project.setPubliclyVisible(request.publiclyVisible());
+        }
         project.setUpdatedAt(now);
     }
 
@@ -50,6 +54,6 @@ public final class ProjectMapper {
         return new ProjectResponse(project.getId(), project.getOwnerId(), ownerName, project.getClassId(), className,
                 project.getTitle(),
                 project.getDescription(), project.getGithubUrl(), project.getLiveUrl(),
-                project.getTechnologies(), project.getCreatedAt(), project.getUpdatedAt());
+                project.getTechnologies(), project.isPubliclyVisible(), project.getCreatedAt(), project.getUpdatedAt());
     }
 }

@@ -38,6 +38,11 @@ public class InMemoryProjectRepository implements ProjectRepository {
     }
 
     @Override
+    public List<Project> findPublicByOwnerIdIn(Collection<String> ownerIds) {
+        return sorted().stream().filter(p -> p.isPubliclyVisible() && ownerIds.contains(p.getOwnerId())).toList();
+    }
+
+    @Override
     public List<Project> findAll() {
         return sorted();
     }

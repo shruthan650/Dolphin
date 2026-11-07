@@ -49,6 +49,9 @@ export default function StudentDashboard() {
         subtitle="Keep track of your projects and problem-solving progress"
         actions={
           <>
+            <Button variant="outline" icon="users" to="/student/students">
+              Find students
+            </Button>
             <Button variant="secondary" icon="code" to="/student/leetcode" className="mobile-hide-create-action">
               Log problem
             </Button>

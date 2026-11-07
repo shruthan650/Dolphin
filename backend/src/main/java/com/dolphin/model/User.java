@@ -11,6 +11,8 @@ public class User {
     private Role role;
     private String githubUrl;
     private String leetCodeUrl;
+    /** Opaque public identifier; null means the student profile is private. */
+    private String publicProfileId;
     private boolean active;
     /** Consecutive wrong passwords since the last successful login. */
     private int failedLoginAttempts;
@@ -30,6 +32,7 @@ public class User {
         copy.role = role;
         copy.githubUrl = githubUrl;
         copy.leetCodeUrl = leetCodeUrl;
+        copy.publicProfileId = publicProfileId;
         copy.active = active;
         copy.failedLoginAttempts = failedLoginAttempts;
         copy.lockedUntil = lockedUntil;
@@ -59,6 +62,9 @@ public class User {
 
     public String getLeetCodeUrl() { return leetCodeUrl; }
     public void setLeetCodeUrl(String leetCodeUrl) { this.leetCodeUrl = leetCodeUrl; }
+
+    public String getPublicProfileId() { return publicProfileId; }
+    public void setPublicProfileId(String publicProfileId) { this.publicProfileId = publicProfileId; }
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }

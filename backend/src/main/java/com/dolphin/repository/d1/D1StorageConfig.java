@@ -62,6 +62,8 @@ public class D1StorageConfig {
             new ColumnMigration("users", "failed_login_attempts", "INTEGER NOT NULL DEFAULT 0", List.of()),
             new ColumnMigration("users", "locked_until", "TEXT", List.of()),
             new ColumnMigration("users", "token_version", "INTEGER NOT NULL DEFAULT 0", List.of()),
+            new ColumnMigration("users", "public_profile_id", "TEXT", List.of()),
+            new ColumnMigration("projects", "publicly_visible", "INTEGER NOT NULL DEFAULT 0", List.of()),
             // Existing projects/entries are assigned to the student's class when they are in exactly one class;
             // otherwise ownership cannot be determined and they stay unassigned (never deleted with a class).
             new ColumnMigration("projects", "class_id", "TEXT", List.of("""
@@ -80,6 +82,8 @@ public class D1StorageConfig {
 
     /** Indexes on migrated columns; they can only be created once the columns exist. */
     static final List<String> MIGRATED_INDEXES = List.of(
+            "CREATE INDEX IF NOT EXISTS idx_users_public_profile ON users (role, active, public_profile_id)",
+            "CREATE INDEX IF NOT EXISTS idx_projects_public_owner ON projects (owner_id, publicly_visible)",
             "CREATE INDEX IF NOT EXISTS idx_projects_class ON projects (class_id)",
             "CREATE INDEX IF NOT EXISTS idx_leetcode_class ON leetcode_entries (class_id)");
 

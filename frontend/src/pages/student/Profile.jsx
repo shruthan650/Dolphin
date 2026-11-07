@@ -17,6 +17,7 @@ import { canViewLeetCodeStreak } from '../../utils/streakVisibility';
 import PaginationControls from '../../components/common/PaginationControls';
 import { usePagination } from '../../hooks/usePagination';
 import LeetCodeStreakCard from '../../components/cards/LeetCodeStreakCard';
+import Button from '../../components/common/Button';
 
 async function loadProfile() {
   const [me, dashboard] = await Promise.all([authService.me(), studentService.dashboard()]);
@@ -28,6 +29,7 @@ export default function Profile() {
   const toast = useToast();
   const { user } = useAuth();
   const classPagination = usePagination(sortByName(data?.dashboard.joinedClasses, (item) => item?.className));
+  const visibility = useApi(studentService.publicProfileVisibility);
 
   if (loading) return <LoadingState label="Loading profile…" />;
   if (error) return <ErrorState title="Unable to load profile" message={error.message} onRetry={reload} />;
@@ -53,6 +55,46 @@ export default function Profile() {
         </div>
         <p className="profile-meta muted">Member since {formatDate(me.createdAt)}</p>
       </div>
+
+      <Card
+        title="Public student profile"
+        subtitle="Only your display name, joined date, coding totals, streak, activity, and projects you individually share are visible."
+      >
+        {visibility.loading && !visibility.data ? (
+          <p className="muted">Loading privacy settings…</p>
+        ) : visibility.error ? (
+          <p className="field-error" role="alert">Unable to load public profile privacy settings.</p>
+        ) : (
+          <div className="privacy-setting">
+            <p className="muted">
+              Your profile is <strong>{visibility.data?.isPublic ? 'public' : 'private'}</strong>
+              {visibility.data?.isPublic
+                ? ' and can be found by other students.'
+                : '. Turn it on to let other students discover your approved public information.'}
+            </p>
+            <Button
+              variant={visibility.data?.isPublic ? 'outline' : 'primary'}
+              loading={visibility.loading}
+              onClick={async () => {
+                try {
+                  const updated = await studentService.updatePublicProfileVisibility(!visibility.data?.isPublic);
+                  visibility.setData(updated);
+                  toast.success(updated.isPublic ? 'Your public profile is now visible' : 'Your profile is private');
+                } catch (requestError) {
+                  toast.error(requestError.response?.data?.message ?? 'Could not update profile visibility');
+                }
+              }}
+            >
+              {visibility.data?.isPublic ? 'Make profile private' : 'Make profile public'}
+            </Button>
+          </div>
+        )}
+        {visibility.data?.isPublic && (
+          <p className="field-hint">
+            <Button variant="ghost" size="sm" to="/student/students">Browse the student directory</Button>
+          </p>
+        )}
+      </Card>
 
       {canViewLeetCodeStreak(user?.role, 'own-student-profile') && (
         <LeetCodeStreakCard streak={dashboard.leetCodeStreak} />

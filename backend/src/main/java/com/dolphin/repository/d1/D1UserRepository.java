@@ -68,6 +68,33 @@ public class D1UserRepository implements UserRepository {
                 .toList();
     }
 
+    @Override
+    public List<PublicStudentCandidate> findPublicStudents(String search, String excludedUserId, int limit, int offset) {
+        return d1.query("""
+                SELECT id, public_profile_id, name, created_at FROM users
+                WHERE role = 'STUDENT' AND active = 1 AND public_profile_id IS NOT NULL AND id != ?
+                  AND instr(lower(name), lower(?)) > 0
+                ORDER BY lower(name), id LIMIT ? OFFSET ?
+                """, excludedUserId, search, limit, offset).stream().map(D1UserRepository::toPublicStudent).toList();
+    }
+
+    @Override
+    public long countPublicStudents(String search, String excludedUserId) {
+        return number(d1.query("""
+                SELECT COUNT(*) AS n FROM users
+                WHERE role = 'STUDENT' AND active = 1 AND public_profile_id IS NOT NULL AND id != ?
+                  AND instr(lower(name), lower(?)) > 0
+                """, excludedUserId, search).get(0), "n");
+    }
+
+    @Override
+    public Optional<PublicStudentCandidate> findPublicStudentByProfileId(String profileId) {
+        return d1.query("""
+                SELECT id, public_profile_id, name, created_at FROM users
+                WHERE role = 'STUDENT' AND active = 1 AND public_profile_id = ?
+                """, profileId).stream().findFirst().map(D1UserRepository::toPublicStudent);
+    }
+
     /** Keeps the order of {@code ids}, skipping unknown ones. */
     @Override
     public List<User> findAllById(Iterable<String> ids) {
@@ -96,18 +123,18 @@ public class D1UserRepository implements UserRepository {
         }
         d1.execute("""
                 INSERT INTO users (id, name, email, email_key, password_hash, role, github_url, leetcode_url,
-                                   active, token_version, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   active, token_version, created_at, updated_at, public_profile_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
                     name = excluded.name, email = excluded.email, email_key = excluded.email_key,
                     password_hash = excluded.password_hash, role = excluded.role, github_url = excluded.github_url,
                     leetcode_url = excluded.leetcode_url, active = excluded.active,
-                    token_version = excluded.token_version,
+                    token_version = excluded.token_version, public_profile_id = excluded.public_profile_id,
                     created_at = excluded.created_at, updated_at = excluded.updated_at
                 """,
                 user.getId(), user.getName(), user.getEmail(), normalize(user.getEmail()), user.getPasswordHash(),
                 user.getRole(), user.getGithubUrl(), user.getLeetCodeUrl(), user.isActive(), user.getTokenVersion(),
-                user.getCreatedAt(), user.getUpdatedAt());
+                user.getCreatedAt(), user.getUpdatedAt(), user.getPublicProfileId());
         return user.copy();
     }
 
@@ -219,6 +246,7 @@ public class D1UserRepository implements UserRepository {
         user.setRole(enumValue(row, "role", Role.class));
         user.setGithubUrl(string(row, "github_url"));
         user.setLeetCodeUrl(string(row, "leetcode_url"));
+        user.setPublicProfileId(string(row, "public_profile_id"));
         user.setActive(bool(row, "active"));
         user.setFailedLoginAttempts((int) number(row, "failed_login_attempts"));
         user.setLockedUntil(instant(row, "locked_until"));
@@ -226,6 +254,11 @@ public class D1UserRepository implements UserRepository {
         user.setCreatedAt(instant(row, "created_at"));
         user.setUpdatedAt(instant(row, "updated_at"));
         return user;
+    }
+
+    private static PublicStudentCandidate toPublicStudent(Map<String, Object> row) {
+        return new PublicStudentCandidate(string(row, "id"), string(row, "public_profile_id"),
+                string(row, "name"), instant(row, "created_at"));
     }
 
     private static List<String> toList(Iterable<String> ids) {

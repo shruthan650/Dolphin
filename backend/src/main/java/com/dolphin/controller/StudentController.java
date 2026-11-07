@@ -3,11 +3,14 @@ package com.dolphin.controller;
 import com.dolphin.dto.auth.UpdateProfileLinksRequest;
 import com.dolphin.dto.classdto.StudentClassResponse;
 import com.dolphin.dto.common.UserResponse;
+import com.dolphin.dto.publicprofile.PublicProfileVisibilityResponse;
+import com.dolphin.dto.publicprofile.UpdatePublicProfileVisibilityRequest;
 import com.dolphin.dto.student.StudentDashboardResponse;
 import com.dolphin.security.AuthenticatedUser;
 import com.dolphin.service.AuthService;
 import com.dolphin.service.ClassService;
 import com.dolphin.service.DashboardService;
+import com.dolphin.service.PublicStudentProfileService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,11 +34,14 @@ public class StudentController {
     private final DashboardService dashboardService;
     private final ClassService classService;
     private final AuthService authService;
+    private final PublicStudentProfileService publicStudentProfileService;
 
-    public StudentController(DashboardService dashboardService, ClassService classService, AuthService authService) {
+    public StudentController(DashboardService dashboardService, ClassService classService, AuthService authService,
+                             PublicStudentProfileService publicStudentProfileService) {
         this.dashboardService = dashboardService;
         this.classService = classService;
         this.authService = authService;
+        this.publicStudentProfileService = publicStudentProfileService;
     }
 
     @GetMapping("/dashboard")
@@ -59,5 +65,17 @@ public class StudentController {
     public UserResponse updateProfileLinks(@AuthenticationPrincipal AuthenticatedUser user,
                                            @Valid @RequestBody UpdateProfileLinksRequest request) {
         return authService.updateProfileLinks(user.id(), request);
+    }
+
+    @GetMapping("/public-profile-visibility")
+    public PublicProfileVisibilityResponse publicProfileVisibility(@AuthenticationPrincipal AuthenticatedUser user) {
+        return publicStudentProfileService.getVisibility(user.id());
+    }
+
+    @PutMapping("/public-profile-visibility")
+    public PublicProfileVisibilityResponse updatePublicProfileVisibility(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody UpdatePublicProfileVisibilityRequest request) {
+        return publicStudentProfileService.updateVisibility(user.id(), request);
     }
 }

@@ -1,11 +1,11 @@
 import Button from './Button';
 import { PAGE_SIZE } from '../../hooks/usePagination';
 
-export default function PaginationControls({ page, pageCount, totalItems, onPageChange, className = '' }) {
+export default function PaginationControls({ page, pageCount, totalItems, onPageChange, className = '', pageSize = PAGE_SIZE }) {
   if (pageCount <= 1) return null;
 
-  const firstItem = page * PAGE_SIZE + 1;
-  const lastItem = Math.min((page + 1) * PAGE_SIZE, totalItems);
+  const firstItem = page * pageSize + 1;
+  const lastItem = Math.min((page + 1) * pageSize, totalItems);
 
   return (
     <nav className={`pagination ${className}`} aria-label="Pagination">

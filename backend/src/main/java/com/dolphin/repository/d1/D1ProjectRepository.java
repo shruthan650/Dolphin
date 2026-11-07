@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.dolphin.repository.d1.D1Values.bool;
 import static com.dolphin.repository.d1.D1Values.instant;
 import static com.dolphin.repository.d1.D1Values.number;
 import static com.dolphin.repository.d1.D1Values.string;
@@ -60,6 +61,17 @@ public class D1ProjectRepository implements ProjectRepository {
     }
 
     @Override
+    public List<Project> findPublicByOwnerIdIn(Collection<String> ownerIds) {
+        if (ownerIds.isEmpty()) {
+            return List.of();
+        }
+        return D1Chunks.query(d1,
+                "SELECT owner_id, title, description, github_url, live_url, technologies, created_at, updated_at "
+                        + "FROM projects WHERE publicly_visible = 1 AND owner_id IN (%s) ORDER BY created_at DESC",
+                ownerIds).stream().map(this::toProject).toList();
+    }
+
+    @Override
     public List<Project> findAll() {
         return d1.query("SELECT * FROM projects ORDER BY created_at DESC").stream().map(this::toProject).toList();
     }
@@ -71,17 +83,18 @@ public class D1ProjectRepository implements ProjectRepository {
         }
         d1.execute("""
                 INSERT INTO projects (id, owner_id, class_id, title, description, github_url, live_url, technologies,
-                                      created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                      created_at, updated_at, publicly_visible)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
                     owner_id = excluded.owner_id, class_id = excluded.class_id, title = excluded.title, description = excluded.description,
                     github_url = excluded.github_url, live_url = excluded.live_url,
-                    technologies = excluded.technologies, created_at = excluded.created_at,
+                    technologies = excluded.technologies, publicly_visible = excluded.publicly_visible,
+                    created_at = excluded.created_at,
                     updated_at = excluded.updated_at
                 """,
                 project.getId(), project.getOwnerId(), project.getClassId(), project.getTitle(), project.getDescription(),
                 project.getGithubUrl(), project.getLiveUrl(), writeTechnologies(project.getTechnologies()),
-                project.getCreatedAt(), project.getUpdatedAt());
+                project.getCreatedAt(), project.getUpdatedAt(), project.isPubliclyVisible());
         return project.copy();
     }
 
@@ -110,6 +123,7 @@ public class D1ProjectRepository implements ProjectRepository {
         project.setGithubUrl(string(row, "github_url"));
         project.setLiveUrl(string(row, "live_url"));
         project.setTechnologies(readTechnologies(string(row, "technologies")));
+        project.setPubliclyVisible(bool(row, "publicly_visible"));
         project.setCreatedAt(instant(row, "created_at"));
         project.setUpdatedAt(instant(row, "updated_at"));
         return project;

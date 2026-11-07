@@ -17,6 +17,7 @@ public record ProjectResponse(
         String githubUrl,
         String liveUrl,
         List<String> technologies,
+        boolean publiclyVisible,
         Instant createdAt,
         Instant updatedAt
 ) {

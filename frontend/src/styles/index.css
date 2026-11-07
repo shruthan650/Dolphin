@@ -3044,3 +3044,161 @@ th.cell-num {
   background: var(--danger-soft);
   color: var(--danger);
 }
+
+.public-directory-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.public-directory-search .field {
+  margin: 0;
+}
+
+.public-student-grid,
+.public-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+}
+
+.public-student-card {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.public-student-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.public-student-name {
+  min-width: 0;
+}
+
+.public-student-name h2,
+.public-project h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.public-student-stats,
+.public-coding-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.public-coding-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+}
+
+.public-student-stats > div,
+.public-coding-stats > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.public-student-stats dt,
+.public-coding-stats dt {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.public-student-stats dd,
+.public-coding-stats dd {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.public-student-card > .btn {
+  justify-content: center;
+  text-decoration: none;
+}
+
+.public-project {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.public-project > p {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.public-project-links,
+.privacy-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.privacy-setting > p {
+  margin: 0;
+}
+
+.privacy-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.privacy-checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+  flex: 0 0 auto;
+}
+
+.privacy-checkbox span {
+  display: grid;
+  gap: 4px;
+}
+
+.privacy-checkbox small {
+  color: var(--text-3);
+}
+
+@media (max-width: 600px) {
+  .public-directory-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .public-student-stats {
+    gap: 6px;
+  }
+
+  .public-student-stats > div {
+    padding: 8px;
+  }
+
+  .public-student-stats dd {
+    font-size: 16px;
+  }
+}

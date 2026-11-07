@@ -27,6 +27,8 @@ public record UpdateProjectRequest(
         List<@NotBlank(message = "Technology names cannot be blank")
              @Size(max = 40, message = "Technology names must be at most 40 characters") String> technologies,
 
-        String classId
+        String classId,
+
+        Boolean publiclyVisible
 ) {
 }

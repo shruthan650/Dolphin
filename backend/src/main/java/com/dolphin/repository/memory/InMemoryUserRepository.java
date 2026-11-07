@@ -73,6 +73,41 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     @Override
+    public List<PublicStudentCandidate> findPublicStudents(String search, String excludedUserId, int limit, int offset) {
+        String normalizedSearch = search.toLowerCase(Locale.ROOT);
+        return users.values().stream()
+                .filter(user -> user.getRole() == Role.STUDENT && user.isActive()
+                        && user.getPublicProfileId() != null && !user.getId().equals(excludedUserId)
+                        && user.getName().toLowerCase(Locale.ROOT).contains(normalizedSearch))
+                .sorted(Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER).thenComparing(User::getId))
+                .skip(offset)
+                .limit(limit)
+                .map(user -> new PublicStudentCandidate(user.getId(), user.getPublicProfileId(), user.getName(),
+                        user.getCreatedAt()))
+                .toList();
+    }
+
+    @Override
+    public long countPublicStudents(String search, String excludedUserId) {
+        String normalizedSearch = search.toLowerCase(Locale.ROOT);
+        return users.values().stream()
+                .filter(user -> user.getRole() == Role.STUDENT && user.isActive()
+                        && user.getPublicProfileId() != null && !user.getId().equals(excludedUserId)
+                        && user.getName().toLowerCase(Locale.ROOT).contains(normalizedSearch))
+                .count();
+    }
+
+    @Override
+    public Optional<PublicStudentCandidate> findPublicStudentByProfileId(String profileId) {
+        return users.values().stream()
+                .filter(user -> user.getRole() == Role.STUDENT && user.isActive()
+                        && profileId.equals(user.getPublicProfileId()))
+                .findFirst()
+                .map(user -> new PublicStudentCandidate(user.getId(), user.getPublicProfileId(), user.getName(),
+                        user.getCreatedAt()));
+    }
+
+    @Override
     public synchronized User save(User user) {
         if (user.getId() == null) {
             user.setId(UUID.randomUUID().toString());

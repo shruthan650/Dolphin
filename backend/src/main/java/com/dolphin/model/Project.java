@@ -15,6 +15,7 @@ public class Project {
     private String githubUrl;
     private String liveUrl;
     private List<String> technologies = new ArrayList<>();
+    private boolean publiclyVisible;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -28,6 +29,7 @@ public class Project {
         copy.githubUrl = githubUrl;
         copy.liveUrl = liveUrl;
         copy.technologies = new ArrayList<>(technologies);
+        copy.publiclyVisible = publiclyVisible;
         copy.createdAt = createdAt;
         copy.updatedAt = updatedAt;
         return copy;
@@ -58,6 +60,9 @@ public class Project {
     public void setTechnologies(List<String> technologies) {
         this.technologies = technologies == null ? new ArrayList<>() : new ArrayList<>(technologies);
     }
+
+    public boolean isPubliclyVisible() { return publiclyVisible; }
+    public void setPubliclyVisible(boolean publiclyVisible) { this.publiclyVisible = publiclyVisible; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

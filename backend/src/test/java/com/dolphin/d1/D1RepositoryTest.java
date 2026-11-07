@@ -59,6 +59,34 @@ class D1RepositoryTest {
     }
 
     @Test
+    void publicProfileAndProjectVisibilityPersistWithPrivateDefaults() {
+        Instant now = Instant.now();
+        User privateStudent = users.save(user("private@example.test", Role.STUDENT, now));
+        assertThat(privateStudent.getPublicProfileId()).isNull();
+        assertThat(users.findPublicStudents("", "viewer", 10, 0)).isEmpty();
+
+        User publicStudent = user("public@example.test", Role.STUDENT, now);
+        publicStudent.setPublicProfileId("opaque-public-profile");
+        User savedPublicStudent = users.save(publicStudent);
+        assertThat(users.findPublicStudentByProfileId("opaque-public-profile"))
+                .hasValueSatisfying(candidate -> {
+                    assertThat(candidate.id()).isEqualTo(savedPublicStudent.getId());
+                    assertThat(candidate.name()).isEqualTo(savedPublicStudent.getName());
+                });
+        assertThat(users.findPublicStudents("public", "viewer", 10, 0)).hasSize(1);
+
+        Project project = project(savedPublicStudent.getId(), null);
+        Project privateProject = projects.save(project);
+        assertThat(privateProject.isPubliclyVisible()).isFalse();
+        assertThat(projects.findPublicByOwnerIdIn(List.of(savedPublicStudent.getId()))).isEmpty();
+
+        project.setPubliclyVisible(true);
+        projects.save(project);
+        assertThat(projects.findPublicByOwnerIdIn(List.of(savedPublicStudent.getId())))
+                .extracting(Project::getTitle).containsExactly("P");
+    }
+
+    @Test
     void userRoundTripsAllFieldsAndEmailLookupIsCaseInsensitive() {
         User saved = users.save(user("Asha@Example.com", Role.STUDENT, Instant.parse("2026-01-01T00:00:00.123456Z")));
         User found = users.findByEmail("  asha@EXAMPLE.com ").orElseThrow();

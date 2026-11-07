@@ -26,6 +26,12 @@ public interface UserRepository {
 
     List<User> findAllById(Iterable<String> ids);
 
+    List<PublicStudentCandidate> findPublicStudents(String search, String excludedUserId, int limit, int offset);
+
+    long countPublicStudents(String search, String excludedUserId);
+
+    Optional<PublicStudentCandidate> findPublicStudentByProfileId(String profileId);
+
     User save(User user);
 
     void deleteById(String id);
@@ -58,5 +64,9 @@ public interface UserRepository {
 
     /** Lockout state after a failed login. lockedUntil is null unless this attempt locked the account. */
     record LoginAttemptState(int failedAttempts, Instant lockedUntil) {
+    }
+
+    /** Restricted student fields needed internally to build allowlisted public responses. */
+    record PublicStudentCandidate(String id, String profileId, String name, Instant joinedAt) {
     }
 }

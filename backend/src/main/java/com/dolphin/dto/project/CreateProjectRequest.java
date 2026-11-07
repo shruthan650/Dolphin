@@ -31,6 +31,8 @@ public record CreateProjectRequest(
              @Size(max = 40, message = "Technology names must be at most 40 characters") String> technologies,
 
         @NotBlank(message = "Class is required")
-        String classId
+        String classId,
+
+        Boolean publiclyVisible
 ) {
 }

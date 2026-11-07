@@ -28,6 +28,8 @@ import Projects from './pages/student/Projects';
 import CreateProject from './pages/student/CreateProject';
 import ProjectDetails from './pages/student/ProjectDetails';
 import LeetCode from './pages/student/LeetCode';
+import PublicStudents from './pages/student/PublicStudents';
+import PublicStudentProfile from './pages/student/PublicStudentProfile';
 
 function HomeRedirect() {
   const { isAuthenticated, role, initializing } = useAuth();
@@ -67,6 +69,8 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<StudentDashboard />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="students" element={<PublicStudents />} />
+            <Route path="students/:profileId" element={<PublicStudentProfile />} />
             <Route path="class" element={<MyClass />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/create" element={<CreateProject />} />

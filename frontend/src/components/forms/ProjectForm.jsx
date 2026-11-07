@@ -8,7 +8,15 @@ import ClassSelect from './ClassSelect';
 import FormAlert from './FormAlert';
 import { useForm } from './useForm';
 
-const EMPTY = { title: '', description: '', githubUrl: '', liveUrl: '', technologies: [], classId: '' };
+const EMPTY = {
+  title: '',
+  description: '',
+  githubUrl: '',
+  liveUrl: '',
+  technologies: [],
+  classId: '',
+  publiclyVisible: false,
+};
 
 function validate(values) {
   const errors = {};
@@ -34,6 +42,7 @@ export default function ProjectForm({ initialValues, classes = [], submitLabel =
         liveUrl: initialValues.liveUrl ?? '',
         technologies: initialValues.technologies ?? [],
         classId: initialValues.classId ?? '',
+        publiclyVisible: initialValues.publiclyVisible ?? false,
       }
     : { ...EMPTY, classId: classes.length === 1 ? classes[0].id : '' };
   const { values, setField, bind, handleSubmit, submitting, formError, errors } = useForm(start, validate, (v) =>
@@ -44,6 +53,7 @@ export default function ProjectForm({ initialValues, classes = [], submitLabel =
       liveUrl: v.liveUrl.trim(),
       technologies: v.technologies,
       classId: v.classId,
+      publiclyVisible: v.publiclyVisible,
     }),
   );
   const [techInput, setTechInput] = useState('');
@@ -81,6 +91,17 @@ export default function ProjectForm({ initialValues, classes = [], submitLabel =
         maxLength={2000}
         {...bind('description')}
       />
+      <label className="privacy-checkbox">
+        <input
+          type="checkbox"
+          checked={Boolean(values.publiclyVisible)}
+          onChange={(event) => setField('publiclyVisible', event.target.checked)}
+        />
+        <span>
+          <strong>Show this project on my public profile</strong>
+          <small>Only share projects you have reviewed. New projects stay private unless you opt in.</small>
+        </span>
+      </label>
       <div className="form-row">
         <Input label="GitHub URL" type="url" placeholder="https://github.com/you/project" {...bind('githubUrl')} />
         <Input label="Live URL" type="url" placeholder="https://project.example.com" {...bind('liveUrl')} />

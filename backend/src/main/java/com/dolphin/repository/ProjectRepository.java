@@ -14,6 +14,8 @@ public interface ProjectRepository {
 
     List<Project> findByOwnerIdIn(Collection<String> ownerIds);
 
+    List<Project> findPublicByOwnerIdIn(Collection<String> ownerIds);
+
     List<Project> findAll();
 
     Project save(Project project);

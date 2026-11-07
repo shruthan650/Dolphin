@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     failed_login_attempts INTEGER NOT NULL DEFAULT 0,  -- consecutive wrong passwords since the last success
     locked_until  TEXT,                               -- login rejected until this instant (NULL = not locked)
     token_version INTEGER NOT NULL DEFAULT 0,         -- bumped on password/email change to revoke older JWTs
+    public_profile_id TEXT,                           -- null unless the student opts in to a public profile
     created_at    TEXT,
     updated_at    TEXT
 );
@@ -65,7 +66,8 @@ CREATE TABLE IF NOT EXISTS projects (
     live_url     TEXT,
     technologies TEXT NOT NULL DEFAULT '[]',  -- JSON array of strings
     created_at   TEXT,
-    updated_at   TEXT
+    updated_at   TEXT,
+    publicly_visible INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects (owner_id);
 
